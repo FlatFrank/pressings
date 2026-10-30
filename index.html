@@ -1,0 +1,1758 @@
+<!doctype html>
+<!--
+  PRESSINGS · styles drawn in light, mixed live by a DJ.
+  Each record is one genre, composed like a producer would write it (a few parts with one job each, written rests,
+  a named progression, the sounds that make the style) and played on real recorded instruments. Every piece runs
+  intro → groove → build → one beat of silence → drop → outro, and the circle draws it: one ring per instrument,
+  the hits of each bar joined into the shape of its rhythm, the whole mix written around the dial as it plays.
+
+  References (see NOTES.md):
+  - Maxim Codex, "Shapes of Sound" (Instagram): rings as instruments, rhythm shapes, few parts, composed silence,
+    build and drop. Learned the ideas only; no layouts, art or audio copied.
+  - Tone Matrix (André Michelle): notes held to a scale; every note visible as it plays.
+  - Patatap (Jono Brandel / Lullatone): each sound has its own visual gesture.
+  - Paco's art direction board (Oct 2026): polar slit-scan spectrogram, neon ring helix, light-trail dome,
+    dot-matrix / node-graph tooling, liquid iridescent contours.
+  Samples, loaded at play time from their public hosts (credited in NOTES.md and in the help panel):
+  - VCSL, Versilian Community Sample Library (Sam Gossner et al.), CC0.
+  - Salamander Grand Piano V3 (Alexander Holm), CC-BY 3.0, via the Tone.js audio repository.
+  - FluidR3 GM soundfont (Frank Wen), CC-BY 3.0, via gleitz/midi-js-soundfonts.
+  - Classic drum machine recordings from ritchse/tidal-drum-machines (no license stated; credited, used as found).
+  All code written for this project.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pressings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030305;--fg:#e9ecf2;--dim:#6b7080;--line:rgba(233,236,242,.14)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+canvas#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+canvas#cv.rec{object-fit:contain;background:#000}
+.overlay{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(3,3,5,.92);transition:opacity .6s}
+.overlay.hide{opacity:0;pointer-events:none}
+.card{max-width:680px;font-size:13px;line-height:1.65;color:#c9cdd6}
+.card h1{font:300 54px/1 "Space Grotesk",sans-serif;letter-spacing:.32em;margin:0 0 6px;color:#fff;text-transform:uppercase}
+.card .sub{letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-size:11px;margin-bottom:26px}
+.card table{border-collapse:collapse;margin:14px 0;font-size:12px}
+.card td{padding:4px 18px 4px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.card td:first-child{color:#fff;white-space:nowrap}
+.card small{color:var(--dim);font-size:11px;display:block;margin-top:14px}
+.card a{color:#c9cdd6}
+.go{display:inline-block;margin-top:18px;border:1px solid rgba(255,255,255,.5);padding:10px 22px;letter-spacing:.3em;text-transform:uppercase;font-size:11px;color:#fff;cursor:pointer;background:none;font-family:inherit}
+.go:hover{background:rgba(255,255,255,.08)}
+#load{margin-top:14px;font-size:11px;color:var(--dim);letter-spacing:.12em;min-height:16px}
+#vol{position:fixed;top:44px;right:28px;z-index:3;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.25em;color:#8a90a0;user-select:none}
+#vol input{-webkit-appearance:none;appearance:none;width:110px;height:18px;background:transparent;cursor:pointer;margin:0}
+#vol input::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,#e9ecf2 var(--v,80%),rgba(255,255,255,.18) var(--v,80%))}
+#vol input::-moz-range-track{height:2px;background:rgba(255,255,255,.18)}
+#vol input::-moz-range-progress{height:2px;background:#e9ecf2}
+#vol input::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#fff;margin-top:-4px;box-shadow:0 0 8px rgba(255,255,255,.6)}
+#vol input::-moz-range-thumb{width:10px;height:10px;border:0;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.6)}
+#vol input:focus-visible{outline:1px solid rgba(255,255,255,.4);outline-offset:4px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(10,10,14,.8);border:1px solid var(--line);padding:8px 14px;z-index:6;opacity:0;transition:opacity .35s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="toast"></div>
+<label id="vol"><span>VOL</span><input id="volIn" type="range" min="0" max="100" value="80" aria-label="Volume"></label>
+<div class="overlay hide" id="intro">
+  <div class="card">
+    <h1>Pressings</h1>
+    <div class="sub">styles, drawn in light, mixed live</div>
+    <p>Two families, eleven styles, played on real recorded instruments. Pick a style and a DJ mixes it in on the next bar,
+      the way it's done in a booth: beat-matched, bass swapped on the downbeat, filtered, pitched, or cut on the one.</p>
+    <p>One ring per role. Each bar's hits join into the shape of its rhythm; while two records play, you see both.</p>
+    <button class="go" id="goBtn" type="button">start</button>
+    <div id="load"></div>
+  </div>
+</div>
+<div class="overlay hide" id="help">
+  <div class="card">
+    <h1 style="font-size:34px">Pressings</h1>
+    <table>
+      <tr><td>Esc  ·  M  ·  ◂ ATLAS</td><td>back to the atlas (the music keeps playing)</td></tr>
+      <tr><td>click a style  ·  ↑ ↓  ·  1–9</td><td>mix to that style (starts on the next bar)</td></tr>
+      <tr><td>click a family  ·  ← →</td><td>cumbia / house</td></tr>
+      <tr><td>Space</td><td>play / pause</td></tr>
+      <tr><td>click a ring</td><td>mute that role · shift-click: solo</td></tr>
+      <tr><td>V</td><td>record a 9:16 reel (press again to stop)</td></tr>
+      <tr><td>H</td><td>hide / show the readouts</td></tr>
+      <tr><td>0 / Esc</td><td>this panel</td></tr>
+    </table>
+    <table>
+      <tr><td>EQ blend</td><td>new record in with its lows cut, basses swapped on the downbeat, old record out</td></tr>
+      <tr><td>Filter mix</td><td>new record's high-pass opens while the old one's low-pass closes</td></tr>
+      <tr><td>Pitch fader</td><td>the same record slowed down: cumbia ↔ rebajada</td></tr>
+      <tr><td>Cut on the one</td><td>tempos too far apart: the new record drops on the downbeat</td></tr>
+    </table>
+    <small>Samples: <a href="https://github.com/sgossner/VCSL" target="_blank" rel="noopener">VCSL</a> (CC0) ·
+      Salamander Grand Piano, Alexander Holm (CC-BY 3.0) ·
+      <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener">FluidR3 GM</a>, Frank Wen (CC-BY 3.0) ·
+      drum machines from <a href="https://github.com/ritchse/tidal-drum-machines" target="_blank" rel="noopener">tidal-drum-machines</a>.
+      The TB-303 line is synthesised.</small>
+  </div>
+</div>
+<script type="module">
+/* =====================================================================
+   BASICS · numbers, seeded randomness, notes and chords
+   ===================================================================== */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v)), lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashStr(s) { let h = 1779033703 ^ s.length; for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return h >>> 0; }
+const pick = (R, a) => a[Math.floor(R() * a.length)];
+const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const FLATS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+const SAL_N = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
+const NAMES = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
+const midiName = (m, t = FLATS) => t[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+const pcOf = n => ((n % 12) + 12) % 12;
+const inRange = (pc, lo) => lo + pcOf(pc - lo);          // the first note of pitch class pc at or above lo
+
+const QUAL = {
+  "": [0, 4, 7], m: [0, 3, 7], "7": [0, 4, 7, 10], m7: [0, 3, 7, 10], maj7: [0, 4, 7, 11], m9: [0, 3, 7, 10, 14],
+  maj9: [0, 4, 7, 11, 14], "9": [0, 4, 7, 10, 14], "7b9": [0, 4, 7, 10, 13], "7#9": [0, 4, 7, 10, 15], m11: [0, 3, 7, 10, 14, 17],
+  sus: [0, 5, 7], "6": [0, 4, 7, 9], add9: [0, 4, 7, 14], madd9: [0, 3, 7, 14],
+};
+function chord(name) {
+  const m = name.match(/^([A-G])([b#]?)(.*)$/);
+  const root = pcOf(PC[m[1]] + (m[2] === "b" ? -1 : m[2] === "#" ? 1 : 0));
+  return { name, root, q: m[3], iv: QUAL[m[3]] || QUAL[""] };
+}
+const chordLabel = c => c.name.replace(/b(?=\d|$)/g, "♭").replace("#", "♯").replace(/^([A-G])b/, "$1♭");
+// a voicing inside [lo, hi], as close as possible to the previous one (voice leading)
+function voice(ch, lo, hi, prev, { rootless = false, max = 4 } = {}) {
+  let iv = ch.iv.slice();
+  if (rootless && iv.length >= 4) iv = iv.slice(1);
+  if (iv.length > max) iv = [iv[0], ...iv.slice(-(max - 1))];
+  const pcs = [...new Set(iv.map(i => pcOf(ch.root + i)))];
+  let best = null, bc = 1e9;
+  const target = prev && prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : (lo + hi) / 2;
+  for (let r = 0; r < pcs.length; r++) {
+    const out = []; let n = inRange(pcs[r], lo);
+    for (let k = 0; k < pcs.length; k++) { const pc = pcs[(r + k) % pcs.length]; while (pcOf(n) !== pc) n++; out.push(n); n++; }
+    if (out[out.length - 1] > hi) continue;
+    const mean = out.reduce((a, b) => a + b, 0) / out.length;
+    const cost = Math.abs(mean - target) + (prev && prev.length === out.length ? out.reduce((s, x, i) => s + Math.abs(x - prev[i]), 0) * .25 : 0);
+    if (cost < bc) { bc = cost; best = out; }
+  }
+  return best || pcs.map(pc => inRange(pc, lo));
+}
+const SCALE = { minor: [0, 2, 3, 5, 7, 8, 10], dorian: [0, 2, 3, 5, 7, 9, 10], harmonic: [0, 2, 3, 5, 7, 8, 11], penta: [0, 3, 5, 7, 10], major: [0, 2, 4, 5, 7, 9, 11] };
+function scaleNotes(key, sc, lo, hi) { const out = []; for (let n = lo; n <= hi; n++) if (SCALE[sc].includes(pcOf(n - key))) out.push(n); return out; }
+const nearest = (list, n) => list.reduce((a, b) => Math.abs(b - n) < Math.abs(a - n) ? b : a, list[0]);
+// drum patterns written as 16 (or 32) characters: x hit · o soft · g ghost · X accent · letters can name a variant
+function drum(str, map = {}) {
+  const ev = [], L = str.length;
+  for (let i = 0; i < L; i++) {
+    const ch = str[i]; if (ch === "." || ch === " ") continue;
+    const m = map[ch] || { v: { x: .9, X: 1.05, o: .62, g: .3 }[ch] ?? .8 };
+    ev.push({ s: i * 16 / L, v: m.v, var: m.var });
+  }
+  return ev;
+}
+
+/* =====================================================================
+   SAMPLES · real recorded instruments, loaded from their public homes
+   ===================================================================== */
+const FL = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+const SAL = "https://tonejs.github.io/audio/salamander/";
+const VC = "https://cdn.jsdelivr.net/gh/sgossner/VCSL@master/";
+const TDM = "https://raw.githubusercontent.com/ritchse/tidal-drum-machines/main/machines/";
+const enc = p => p.split("/").map(encodeURIComponent).join("/");
+const tdm = (...p) => p.map(x => TDM + enc(x));
+const vcsl = (dir, ...f) => f.map(x => VC + enc(dir + "/" + x));
+function fluid(name, lo, hi) {                           // every minor third: the sampler fills the gaps
+  const notes = {}; for (let m = lo - pcOf(lo) % 3; m <= hi + 2; m += 3) notes[m] = `${FL}${name}-mp3/${midiName(m)}.mp3`; return notes;
+}
+function salamander(lo, hi) { const notes = {}; for (let m = lo - pcOf(lo) % 3; m <= hi + 2; m += 3) if (m >= 21 && m <= 108) notes[m] = `${SAL}${midiName(m, SAL_N)}.mp3`; return notes; }
+const PERC = "Idiophones/Struck Idiophones", MEMB = "Membranophones/Struck Membranophones";
+const INST = {
+  "909.bd": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-bd/Bassdrum-01.wav", "RolandTR909/rolandtr909-bd/Bassdrum-02.wav") },
+  "909.cp": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-cp/cp01.wav", "RolandTR909/rolandtr909-cp/cp02.wav", "RolandTR909/rolandtr909-cp/cp03.wav") },
+  "909.hh": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-hh/hh01.wav", "RolandTR909/rolandtr909-hh/hh02.wav", "RolandTR909/rolandtr909-hh/hh03.wav") },
+  "909.oh": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-oh/oh01.wav", "RolandTR909/rolandtr909-oh/oh02.wav") },
+  "909.rim": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-rim/rs01.wav", "RolandTR909/rolandtr909-rim/rs02.wav") },
+  "909.sd": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-sd/sd01.wav", "RolandTR909/rolandtr909-sd/sd02.wav") },
+  "909.cr": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-cr/Crash.wav") },
+  "808.bd": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-bd/BD0025.WAV", "RolandTR808/rolandtr808-bd/BD0050.WAV") },
+  "808.hh": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-hh/CH.WAV") },
+  "808.rim": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-rim/RS.WAV") },
+  "808.cp": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-cp/cp0.wav", "RolandTR808/rolandtr808-cp/cp1.wav") },
+  "linn.bd": { kind: "drum", urls: tdm("LinnDrum/linndrum-bd/Bassdrum.wav") },
+  "linn.sd": { kind: "drum", urls: tdm("LinnDrum/linndrum-sd/0Snarderum-01.wav", "LinnDrum/linndrum-sd/0Snarderum-02.wav", "LinnDrum/linndrum-sd/0Snarderum-03.wav") },
+  "linn.hh": { kind: "drum", urls: tdm("LinnDrum/linndrum-hh/Hat Closed-01.wav", "LinnDrum/linndrum-hh/Hat Closed-02.wav", "LinnDrum/linndrum-hh/Hat Closed-03.wav") },
+  "mpc.bd": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-bd/0 Bassdrum.wav") },
+  "mpc.sd": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-sd/Snare 1.wav", "AkaiMPC60/akaimpc60-sd/Snare 2.wav", "AkaiMPC60/akaimpc60-sd/Snare 3.wav") },
+  "mpc.hh": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-hh/Closed Hat.wav") },
+  "mpc.oh": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-oh/Open Hat.wav") },
+  "vc.shaker": { kind: "drum", urls: vcsl(PERC + "/Shaker, Small", "Mid_ShakerHighFaster_Down_rr1.wav", "Mid_ShakerHighFaster_Down_rr2.wav"),
+    vars: { up: vcsl(PERC + "/Shaker, Small", "Mid_ShakerHighFaster_Up_rr1.wav", "Mid_ShakerHighFaster_Up_rr2.wav") } },
+  "vc.shakerL": { kind: "drum", urls: vcsl(PERC + "/Shaker, Large", "LShaker_Hit_rr1_Mid.wav", "LShaker_Hit_rr2_Mid.wav") },
+  "vc.conga": { kind: "drum", urls: vcsl(MEMB + "/Conga", "Conga_HitN_v2_rr1_Sum.wav", "Conga_HitN_v2_rr2_Sum.wav"),
+    vars: { slap: vcsl(MEMB + "/Conga", "Quinto_HitFM1_v2_rr1_Sum.wav", "Quinto_HitFM1_v2_rr2_Sum.wav"),
+            tumba: vcsl(MEMB + "/Conga", "Tumba_HitN_v3_rr1_Sum.wav", "Tumba_HitN_v3_rr2_Sum.wav"),
+            quinto: vcsl(MEMB + "/Conga", "Quinto_HitN_v2_rr1_Sum.wav", "Quinto_HitN_v2_rr2_Sum.wav"),
+            ghost: vcsl(MEMB + "/Conga", "Conga_HitN_v1_rr1_Sum.wav", "Conga_HitN_v1_rr2_Sum.wav") } },
+  "vc.clave": { kind: "drum", urls: vcsl(PERC + "/Claves", "Claves1_Hit_v2_rr1_Mid.wav", "Claves1_Hit_v3_rr1_Mid.wav") },
+  "vc.guiro": { kind: "drum", urls: vcsl(PERC + "/Guiro", "Guiro_Hit_rr1_Mid.wav", "Guiro_Hit_rr2_Mid.wav"),
+    vars: { long: vcsl(PERC + "/Guiro", "Guiro_Med_rr1_Mid.wav") } },
+  "vc.wood": { kind: "drum", urls: vcsl(PERC + "/Woodblock", "wood_click_f_rr1.wav", "wood_click_f_rr2.wav") },
+  "vc.clap": { kind: "drum", urls: vcsl(PERC + "/Claps", "Clap_rr1.wav", "Clap_rr2.wav", "Clap_rr3.wav") },
+  "vc.cresc": { kind: "drum", urls: vcsl(PERC + "/Suspended Cymbal 1", "susCymb1_cresc_2s.wav") },
+  "vc.marimba": { kind: "pitch", notes: Object.fromEntries([["F3", 53], ["C4", 60], ["G4", 67], ["B4", 71], ["F5", 77]].map(([n, m]) => [m, vcsl(PERC + "/Marimba", `Marimba_hit_Outrigger_${n}_soft_01.wav`)[0]])) },
+  "gm.epiano": { kind: "pitch", notes: fluid("electric_piano_1", 48, 79) },
+  "gm.finger": { kind: "pitch", notes: fluid("electric_bass_finger", 28, 55) },
+  "gm.upright": { kind: "pitch", notes: fluid("acoustic_bass", 28, 55) },
+  "gm.sb1": { kind: "pitch", notes: fluid("synth_bass_1", 24, 50) },
+  "gm.sb2": { kind: "pitch", notes: fluid("synth_bass_2", 28, 52) },
+  "gm.pad": { kind: "pitch", notes: fluid("pad_2_warm", 45, 74) },
+  "gm.poly": { kind: "pitch", notes: fluid("pad_3_polysynth", 45, 76) },
+  "gm.strings": { kind: "pitch", notes: fluid("string_ensemble_1", 45, 79) },
+  "gm.saw": { kind: "pitch", notes: fluid("lead_2_sawtooth", 55, 86) },
+  "gm.square": { kind: "pitch", notes: fluid("lead_1_square", 60, 88) },
+  "gm.brass": { kind: "pitch", notes: fluid("brass_section", 50, 77) },
+  "gm.accordion": { kind: "pitch", notes: fluid("accordion", 52, 86) },
+  "sal.piano": { kind: "pitch", notes: salamander(43, 81) },
+  "gm.nylon": { kind: "pitch", notes: fluid("acoustic_guitar_nylon", 50, 79) },
+  "gm.organ": { kind: "pitch", notes: fluid("drawbar_organ", 50, 79) },
+  "gm.guitar": { kind: "pitch", notes: fluid("electric_guitar_clean", 52, 86) },
+  "gm.panflute": { kind: "pitch", notes: fluid("pan_flute", 62, 91) },
+  "gm.halo": { kind: "pitch", notes: fluid("pad_7_halo", 45, 76) },
+  "909.hhx": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-hh/hh01.wav", "RolandTR909/rolandtr909-hh/hh02.wav", "RolandTR909/rolandtr909-hh/hh03.wav"),
+    vars: { open: tdm("RolandTR909/rolandtr909-oh/oh01.wav", "RolandTR909/rolandtr909-oh/oh02.wav") } },
+  "808.conga": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-perc/MC25.WAV"), vars: { hi: tdm("RolandTR808/rolandtr808-perc/HC25.WAV"), lo: tdm("RolandTR808/rolandtr808-perc/LC25.WAV") } },
+  "808.ma": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-sh/MA.WAV") },
+  "808.cb": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-cb/CB.WAV") },
+  "vc.bombo": { kind: "drum", urls: vcsl(MEMB + "/Bass Drum 1", "BDrumNew_hit_v3_rr1_Sum.wav", "BDrumNew_hit_v3_rr2_Sum.wav") },
+  "vc.rope": { kind: "drum", urls: vcsl(MEMB + "/Snare Drum, Rope Tension", "RopeSnare_sidestick_Main_vl2_rr1.wav", "RopeSnare_sidestick_Main_vl2_rr2.wav"),
+    vars: { stick: vcsl(MEMB + "/Snare Drum, Rope Tension", "RopeSnare_stick_Main_vl1_rr1.wav", "RopeSnare_stick_Main_vl1_rr2.wav") } },
+  "vc.timbal": { kind: "drum", urls: vcsl(MEMB + "/Snare Drum, Modern 1", "Snare2_HitNS_v4_rr1_Mid.wav", "Snare2_HitNS_v4_rr2_Mid.wav") },
+  "vc.bongo": { kind: "drum", urls: vcsl(MEMB + "/Bongos", "BongoH_Hit1_v2_rr1_Mid.wav", "BongoH_Hit1_v2_rr2_Mid.wav"),
+    vars: { low: vcsl(MEMB + "/Bongos", "BongoL_Hit1_v2_rr1_Mid.wav", "BongoL_Hit1_v2_rr2_Mid.wav"), mute: vcsl(MEMB + "/Bongos", "BongoH_HitMuted1_v2_rr1_Mid.wav", "BongoH_HitMuted1_v2_rr2_Mid.wav") } },
+  "vc.cajon": { kind: "drum", urls: vcsl(PERC + "/Cajon", "Cajon_hit1_f_rr1.wav", "Cajon_hit1_f_rr2.wav"),
+    vars: { slap: vcsl(PERC + "/Cajon", "Cajon_hit2_f_rr1.wav", "Cajon_hit2_f_rr2.wav"), ghost: vcsl(PERC + "/Cajon", "Cajon_hit2_pp_rr1.wav", "Cajon_hit2_pp_rr2.wav") } },
+  "vc.tamb": { kind: "drum", urls: vcsl(PERC + "/Tambourine 1", "Tamb1_Hit_v1_rr1_Mid.wav", "Tamb1_Hit_v2_rr1_Mid.wav") },
+  "vc.hihat": { kind: "drum", urls: vcsl(PERC + "/Hi-Hat Cymbal", "HiHat_HitC_v2_rr1_Mid.wav"),
+    vars: { open: vcsl(PERC + "/Hi-Hat Cymbal", "HiHat_HitO_rr1_Mid.wav"), ghost: vcsl(PERC + "/Hi-Hat Cymbal", "HiHat_HitC_v1_rr1_Mid.wav", "HiHat_HitC_v1_rr2_Mid.wav") } },
+  "vc.anvil": { kind: "drum", urls: vcsl(PERC + "/Anvil", "Anvil_Hit1_v2_rr1_Mid.wav") },
+  "vc.brake": { kind: "drum", urls: vcsl(PERC + "/Brake Drum", "BrakeDrum1_Hammer_v2_rr1_Mid.wav") },
+  "707.bd": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-bd/Bassdrum-01.wav", "RolandTR707/rolandtr707-bd/Bassdrum-02.wav") },
+  "707.sd": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-sd/Snaredrum-01.wav", "RolandTR707/rolandtr707-sd/Snaredrum-02.wav") },
+  "707.cp": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-cp/Clap.wav") },
+  "707.hh": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-hh/Hat Closed.wav"), vars: { open: tdm("RolandTR707/rolandtr707-oh/Hat Open.wav") } },
+  "707.cb": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-cb/Cowbell.wav") },
+  "707.tb": { kind: "drum", urls: tdm("RolandTR707/rolandtr707-tb/Tambourine.wav") },
+  "linn.cp": { kind: "drum", urls: tdm("LinnDrum/linndrum-cp/Clap.wav") },
+  "linn.hhx": { kind: "drum", urls: tdm("LinnDrum/linndrum-hh/Hat Closed-01.wav", "LinnDrum/linndrum-hh/Hat Closed-02.wav"), vars: { open: tdm("LinnDrum/linndrum-oh/Hat Open.wav") } },
+  "linn.toms": { kind: "drum", urls: tdm("LinnDrum/linndrum-ht/Tom H-01.wav"), vars: { mid: tdm("LinnDrum/linndrum-mt/Tom M-01.wav"), low: tdm("LinnDrum/linndrum-lt/Tom L-01.wav") } },
+  "linn.cb": { kind: "drum", urls: tdm("LinnDrum/linndrum-cb/Cowbell.wav") },
+  "linn.sh": { kind: "drum", urls: tdm("LinnDrum/linndrum-sh/Cabasa.wav") },
+  "808.sd": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-sd/SD0010.WAV", "RolandTR808/rolandtr808-sd/SD0025.WAV") },
+  "808.hhx": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-hh/CH.WAV"), vars: { open: tdm("RolandTR808/rolandtr808-oh/OH25.WAV") } },
+  "808.toms": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-ht/HT25.WAV"), vars: { mid: tdm("RolandTR808/rolandtr808-mt/MT25.WAV"), low: tdm("RolandTR808/rolandtr808-lt/LT25.WAV") } },
+  "808.boom": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-bd/BD5075.WAV") },
+  "909.toms": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-ht/ht01.wav"), vars: { mid: tdm("RolandTR909/rolandtr909-mt/mt01.wav"), low: tdm("RolandTR909/rolandtr909-lt/lt01.wav") } },
+  "gm.slap": { kind: "pitch", notes: fluid("slap_bass_1", 28, 55) },
+  "gm.mutegtr": { kind: "pitch", notes: fluid("electric_guitar_muted", 50, 79) },
+  "gm.orch": { kind: "pitch", notes: fluid("orchestra_hit", 52, 79) },
+  "gm.sbrass": { kind: "pitch", notes: fluid("synth_brass_1", 50, 79) },
+  "gm.dx": { kind: "pitch", notes: fluid("electric_piano_2", 50, 79) },
+  "gm.clav": { kind: "pitch", notes: fluid("clavinet", 50, 79) },
+  "gm.oohs": { kind: "pitch", notes: fluid("voice_oohs", 55, 79) },
+  "gm.mtrumpet": { kind: "pitch", notes: fluid("muted_trumpet", 58, 82) },
+  "gm.steel": { kind: "pitch", notes: fluid("steel_drums", 60, 84) },
+  "gm.sstrings": { kind: "pitch", notes: fluid("synth_strings_1", 48, 79) },
+  "gm.vibes": { kind: "pitch", notes: fluid("vibraphone", 55, 86) },
+  "gm.flute": { kind: "pitch", notes: fluid("flute", 65, 91) },
+  "gm.quena": { kind: "pitch", notes: fluid("shakuhachi", 62, 91) },
+  "vc.charango": { kind: "pitch", notes: Object.fromEntries([["Str2_Main_D3", 50], ["Str3_Main_E3", 52], ["Str3_Main_G3", 55], ["Str3_Main_A3", 57], ["Str3_Main_B3", 59], ["Str3_Main_D4", 62], ["Str3_Main_E4", 64], ["Str3_Main_G4", 67]]
+    .map(([n, m]) => [m, vcsl("Chordophones/Composite Chordophones/Strumstick/Finger", `Strumstick_Finger_${n}_vl3_rr1.wav`)[0]])) },
+  "vc.balafon": { kind: "pitch", notes: Object.fromEntries([["F3", 53, "rr1"], ["C4", 60, "rr2"], ["F4", 65, "rr1"], ["F5", 77, "rr1"]].map(([n, m, r]) => [m, vcsl(PERC + "/Balafon/Soft Mallet", `EthnicXylo_softM_${n}_vl3_${r}_Mid.wav`)[0]])) },
+  "vc.ocarina": { kind: "pitch", notes: Object.fromEntries([["A3", 57], ["C#4", 61], ["F#4", 66], ["A4", 69], ["C5", 72], ["C#5", 73]].map(([n, m]) => [m, vcsl("Aerophones/Edge-blown Aerophones/Ocarina, Typical/Sustains/Sus", `StdOcarina_Sus_${n}.wav`)[0]])) },
+  "vc.leguero": { kind: "drum", urls: vcsl(MEMB + "/Tom 2/Mallet", "TomL_HitM_v2_rr1_Mid.wav", "TomL_HitM_v3_rr2_Mid.wav"), vars: { aro: vcsl(MEMB + "/Frame Drum", "HDrumL_HitMuted_v2_rr1_Sum.wav"), hi: vcsl(MEMB + "/Tom 1/Mallet", "TomH_HitM_v2_rr1_Mid.wav") } },
+  "vc.frame": { kind: "drum", urls: vcsl(MEMB + "/Frame Drum", "HDrumL_Hit_v2_rr1_Sum.wav"), vars: { hi: vcsl(MEMB + "/Frame Drum", "HDrumS_Hit_v2_rr1_Sum.wav") } },
+  "vc.quijada": { kind: "drum", urls: vcsl(PERC + "/Vibraslap/Legacy", "vibraslap_rr2.wav") },
+  "vc.slit": { kind: "drum", urls: vcsl(PERC + "/Slit Drum", "LogDrumHi_MedM_v2_rr1_Sum.wav"), vars: { lo: vcsl(PERC + "/Slit Drum", "LogDrumLo_MedM_v2_rr1_Sum.wav") } },
+  "vc.sleigh": { kind: "drum", urls: vcsl(PERC + "/Sleigh Bells", "Sleighbells_Hit_rr1_Mid.wav") },
+};
+function instUrls(key) { const I = INST[key]; if (!I) return []; if (I.kind === "pitch") return Object.values(I.notes); return [...I.urls, ...Object.values(I.vars || {}).flat()]; }
+
+/* =====================================================================
+   AUDIO · a sampler for real recordings (repitched from the nearest note, recorded takes rotated), a TB-303-style acid voice
+   (the 303 is a synth, so it is synthesised), two DJ decks, each with its own bus, sidechain duck, three-band-style EQ
+   (low shelf, high shelf), filters and fader, and a master: reverb, gated reverb, tempo-synced delay, glue, limiter.
+   ===================================================================== */
+let ctx = null, M = null, analyser = null, recDest = null;
+const bufCache = new Map();
+function loadBuf(url) {
+  if (!bufCache.has(url)) bufCache.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(a => ctx.decodeAudioData(a)).then(normalize).catch(e => { console.warn("sample missing", url, e.message || e); return null; }));
+  return bufCache.get(url);
+}
+// recordings arrive at very different levels (a drum machine peaks at 0 dB, a soft marimba hit at −41 dB):
+// each is measured on its body (120 ms from the peak) and brought to one reference level before the mix
+function normalize(b) {
+  const x = b.getChannelData(0); let pk = 0, pi = 0; for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > pk) { pk = a; pi = i; } }
+  const w = Math.max(1, Math.min(x.length - pi, Math.floor(b.sampleRate * .12))); let s = 0; for (let i = pi; i < pi + w; i++) s += x[i] * x[i];
+  const rms = Math.sqrt(s / w) || 1e-6; b._n = Math.min(Math.pow(10, (-16 - 20 * Math.log10(rms)) / 20), 2 / Math.max(pk, 1e-6), 100);
+  return b;
+}
+async function loadAll(urls, onProgress) {
+  let done = 0; const list = [...new Set(urls)], q = list.slice();
+  const worker = async () => { while (q.length) { await loadBuf(q.shift()); done++; onProgress?.(done, list.length); } };
+  await Promise.all(Array.from({ length: 8 }, worker));
+}
+async function bufsOf(key) {                               // { main:[buf], vars:{name:[buf]} } or { notes:[{m,buf}] }
+  const I = INST[key]; if (!I) return null;
+  if (I.kind === "pitch") {
+    const notes = []; for (const [m, u] of Object.entries(I.notes)) { const b = await loadBuf(u); if (b) notes.push({ m: +m, buf: b }); }
+    return { pitch: true, notes: notes.sort((a, b) => a.m - b.m) };
+  }
+  const main = (await Promise.all(I.urls.map(loadBuf))).filter(Boolean), vars = {};
+  for (const [k, us] of Object.entries(I.vars || {})) vars[k] = (await Promise.all(us.map(loadBuf))).filter(Boolean);
+  return { pitch: false, main, vars };
+}
+
+function makeIR(sec, decay, gated = false) {
+  const n = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = b.getChannelData(ch); let lp = 0;
+    for (let i = 0; i < n; i++) {
+      const x = i / n, env = gated ? (x < .85 ? .9 - x * .25 : (1 - x) / .15 * .7) : Math.pow(1 - x, decay);
+      lp += ((Math.random() * 2 - 1) - lp) * (gated ? .55 : .35 + .5 * (1 - x));   // darker as it decays
+      d[i] = lp * env * (i < 40 ? i / 40 : 1);
+    }
+  }
+  return b;
+}
+function satCurve(k) { const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * (1 + k)) / Math.tanh(1 + k); } return c; }
+function initAudio() {
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+  const g = (v = 1) => { const n = ctx.createGain(); n.gain.value = v; return n; };
+  const f = (type, fr, q = .7) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = fr; n.Q.value = q; return n; };
+  M = { g, f };
+  M.pre = g(1); M.hp = f("highpass", 20, .9);
+  M.sat = ctx.createWaveShaper(); M.sat.curve = satCurve(.6); M.sat.oversample = "2x";
+  M.glue = ctx.createDynamicsCompressor(); M.glue.threshold.value = -16; M.glue.ratio.value = 2.5; M.glue.attack.value = .012; M.glue.release.value = .18; M.glue.knee.value = 8;
+  M.out = g(.82);
+  M.lim = ctx.createDynamicsCompressor(); M.lim.threshold.value = -2; M.lim.ratio.value = 20; M.lim.attack.value = .002; M.lim.release.value = .08; M.lim.knee.value = 0;
+  M.pre.connect(M.hp); M.hp.connect(M.sat); M.sat.connect(M.glue); M.glue.connect(M.out); M.out.connect(M.lim); M.lim.connect(ctx.destination);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = .55; M.lim.connect(analyser);
+  recDest = ctx.createMediaStreamDestination(); M.lim.connect(recDest);
+  M.rev = ctx.createConvolver(); M.rev.buffer = makeIR(2.8, 2.6); M.revIn = g(1); M.revOut = g(.9); M.revIn.connect(M.rev); M.rev.connect(M.revOut); M.revOut.connect(M.pre);
+  M.gate = ctx.createConvolver(); M.gate.buffer = makeIR(.34, 1, true); M.gateIn = g(1); M.gateIn.connect(M.gate); M.gate.connect(M.pre);
+  M.del = ctx.createDelay(2); M.delIn = g(1); M.fb = g(.4); M.delLp = f("lowpass", 2600, .5); M.delHp = f("highpass", 260, .5); M.delOut = g(.8);
+  M.delIn.connect(M.del); M.del.connect(M.delLp); M.delLp.connect(M.delHp); M.delHp.connect(M.fb); M.fb.connect(M.del); M.delHp.connect(M.delOut); M.delOut.connect(M.pre);
+}
+/* ---------- a deck: its parts sum here, then the DJ's EQ, filters and fader ---------- */
+function makeDeckBus() {
+  const b = { drums: M.g(1), music: M.g(1), duck: M.g(1), sum: M.g(1), lo: M.f("lowshelf", 180, .7), hi: M.f("highshelf", 3200, .7),
+    hpf: M.f("highpass", 20, .8), lpf: M.f("lowpass", 20000, .8), fader: M.g(1) };
+  b.music.connect(b.duck); b.duck.connect(b.sum); b.drums.connect(b.sum);
+  b.sum.connect(b.lo); b.lo.connect(b.hi); b.hi.connect(b.hpf); b.hpf.connect(b.lpf); b.lpf.connect(b.fader); b.fader.connect(M.pre);
+  return b;
+}
+/* ---------- one channel per part ---------- */
+function makeChannel(P, bus) {
+  const ch = { in: M.g(1), out: M.g(0), pan: ctx.createStereoPanner(), sends: [] };
+  let last = ch.in;
+  if (P.drive) { ch.drv = ctx.createWaveShaper(); ch.drv.curve = satCurve(P.drive); ch.drv.oversample = "2x"; last.connect(ch.drv); last = ch.drv; }   // distortion (industrial, electroclash)
+  if (P.hp) { ch.hpf = M.f("highpass", P.hp, .7); last.connect(ch.hpf); last = ch.hpf; }
+  if (P.lp) { ch.filt = M.f("lowpass", P.lp, P.sweep ? 2.5 : .6); last.connect(ch.filt); last = ch.filt;
+    if (P.sweep) {                                         // the filtered-disco-loop move: the cutoff breathing over eight bars
+      ch.lfo = ctx.createOscillator(); ch.lfoG = M.g(P.lp * .75); ch.lfo.frequency.value = 1 / (8 * 4 * 60 / (P.sweepBpm || 124)); ch.lfo.connect(ch.lfoG); ch.lfoG.connect(ch.filt.frequency); ch.lfo.start(); } }
+  last.connect(ch.out); ch.out.connect(ch.pan); ch.pan.pan.value = P.pan || 0;
+  ch.pan.connect(INST[P.inst]?.kind === "pitch" || P.synth ? bus.music : bus.drums);
+  for (const [k, dest] of [["rev", M.revIn], ["del", M.delIn], ["gate", M.gateIn]]) if (P[k]) { const s = M.g(P[k]); ch.out.connect(s); s.connect(dest); ch.sends.push(s); }
+  ch.level = Math.pow(10, (P.vol || 0) / 20);
+  return ch;
+}
+function disposeChannel(ch, t) { ch.out.gain.setTargetAtTime(0, t, .05); setTimeout(() => { try { ch.pan.disconnect(); ch.sends.forEach(s => s.disconnect()); ch.lfo?.stop(); } catch (e) {} }, 1500); }
+/* ---------- playing one event on a deck ---------- */
+let rrCount = 0;
+function playPart(D, P, ev, t, sd) {
+  if (!P.ch) return;
+  const vel = clamp(ev.v, 0, 1.3), gain = Math.pow(vel, 1.5), rate0 = D.rate;
+  if (P.synth === "acid") return playAcid(D, P, ev, t, sd, vel);
+  if (P.synth) return playSynth(D, P, ev, t, sd, vel);
+  const B = P.bufs; if (!B) return;
+  if (!B.pitch) {
+    const list = (ev.var && B.vars[ev.var]?.length ? B.vars[ev.var] : B.main); if (!list.length) return;
+    const buf = list[(rrCount++) % list.length];
+    const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = buf; src.playbackRate.value = rate0 * (ev.rate || 1);
+    const g0 = gain * (buf._n || 1); gn.gain.value = g0; src.connect(gn); gn.connect(P.ch.in); src.start(t);
+    if (P.maxLen) { const tc = t + P.maxLen * sd * (ev.var === "long" ? 1.6 : 1); gn.gain.setValueAtTime(g0, tc); gn.gain.setTargetAtTime(0, tc, .02); src.stop(tc + .15); }   // choked, like a damped scrape
+    else src.stop(t + buf.duration / rate0 + .05);
+    if (P.role === "kick" && D.sub.duck) { const d = D.bus.duck.gain; d.setValueAtTime(1 - D.sub.duck, t); d.setTargetAtTime(1, t + .02, .09); }
+    return;
+  }
+  const notes = Array.isArray(ev.n) ? ev.n : [ev.n];
+  notes.forEach((n, k) => {
+    if (!B.notes.length) return;
+    let s = B.notes[0]; for (const x of B.notes) if (Math.abs(x.m - n) < Math.abs(s.m - n)) s = x;
+    const rate = Math.pow(2, (n - s.m) / 12) * rate0, src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = s.buf; src.playbackRate.value = rate;
+    const t0 = t + (ev.strum || 0) * k, att = ev.att || .004, len = Math.max(.05, ev.len * sd), rel = P.rel ?? (ev.att ? .9 : .16);
+    const natural = s.buf.duration / rate, g0 = gain * .8 * (s.buf._n || 1) / Math.sqrt(Math.max(1, notes.length * .6));
+    gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(g0, t0 + att);
+    const end = Math.min(natural, len);
+    gn.gain.setValueAtTime(g0, t0 + Math.max(att, end)); gn.gain.setTargetAtTime(0, t0 + Math.max(att, end), rel / 3);
+    let tail = gn;
+    if (P.wah) {                                           // the chicha guitar: a wah pedal opening on every note
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 3.5;
+      bp.frequency.setValueAtTime(450, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + Math.min(.25, len * .6)); bp.frequency.exponentialRampToValueAtTime(700, t0 + Math.min(natural, len) + .05);
+      const dry = M.g(.35), wet = M.g(1.6), sum = M.g(1); gn.connect(bp); bp.connect(wet); gn.connect(dry); wet.connect(sum); dry.connect(sum); tail = sum;
+    }
+    src.connect(gn); tail.connect(P.ch.in); src.start(t0); src.stop(t0 + Math.min(natural, end + rel * 2) + .05);
+  });
+}
+/* ---------- the acid voice: saw → resonant low-pass with an envelope, accents and slides ---------- */
+function playAcid(D, P, ev, t, sd, vel) {
+  const f0 = mtof(ev.n) * D.rate, len = Math.max(.04, ev.len * sd), o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), vca = ctx.createGain(), sh = ctx.createWaveShaper();
+  o.type = "sawtooth";
+  if (ev.slide && D.acidLast) { o.frequency.setValueAtTime(D.acidLast, t); o.frequency.exponentialRampToValueAtTime(f0, t + .06); } else o.frequency.setValueAtTime(f0, t);
+  D.acidLast = f0;
+  const cut = D.acidCut || 600, acc = ev.acc ? 1 : 0;
+  lp.type = "lowpass"; lp.Q.value = 14 + acc * 4;
+  lp.frequency.setValueAtTime(cut * (1.8 + acc * 2.2), t); lp.frequency.setTargetAtTime(cut, t + .005, .06 + acc * .05);
+  const pk = (.42 + acc * .3) * vel;
+  vca.gain.setValueAtTime(0, t); vca.gain.linearRampToValueAtTime(pk, t + .004);
+  vca.gain.setValueAtTime(pk, t + len * (ev.slide ? 1.05 : .8)); vca.gain.setTargetAtTime(0, t + len * (ev.slide ? 1.05 : .8), .015);
+  sh.curve = satCurve(1.4);
+  o.connect(lp); lp.connect(sh); sh.connect(vca); vca.connect(P.ch.in); o.start(t); o.stop(t + len + .2);
+}
+const mtof = n => 440 * Math.pow(2, (n - 69) / 12);
+function playOneShot(key, t, gain = 1, dest = M.pre, rate = 1) {          // the crash on the drop, the cymbal swell into the silence
+  return bufsOf(key).then(B => { if (!B || !B.main.length) return null; const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = B.main[0]; src.playbackRate.value = rate;
+    gn.gain.value = gain * (B.main[0]._n || 1); src.connect(gn); gn.connect(dest); const s = M.g(.25); gn.connect(s); s.connect(M.revIn); src.start(Math.max(t, ctx.currentTime)); return { src, gn, dur: B.main[0].duration / rate }; });
+}
+/* ---------- three more synth voices: the 808 sub with glides, the detuned reese, the dubstep wobble ---------- */
+function playSynth(D, P, ev, t, sd, vel) {
+  const f0 = mtof(ev.n) * D.rate, len = Math.max(.05, ev.len * sd), vca = ctx.createGain(), out = [];
+  const end = t + len, rel = P.synth === "sub808" ? .12 : .06;
+  if (P.synth === "sub808") {                              // a sine with a pitch punch, sliding when asked, a little grit
+    const o = ctx.createOscillator(); o.type = "sine"; out.push(o);
+    if (ev.slide && D.subLast) { o.frequency.setValueAtTime(D.subLast, t); o.frequency.exponentialRampToValueAtTime(f0, t + .08); }
+    else { o.frequency.setValueAtTime(f0 * 2.2, t); o.frequency.exponentialRampToValueAtTime(f0, t + .045); }
+    D.subLast = f0;
+    const sh = ctx.createWaveShaper(); sh.curve = satCurve(1.8); o.connect(sh); sh.connect(vca);
+    vca.gain.setValueAtTime(0, t); vca.gain.linearRampToValueAtTime(.75 * vel, t + .004); vca.gain.setTargetAtTime(.55 * vel, t + .05, .25);
+  } else if (P.synth === "reese") {                        // two saws a few cents apart and a sub, through a low-pass
+    const lp = M.f("lowpass", P.cut || 700, 1.2); lp.connect(vca);
+    for (const [type, det, g] of [["sawtooth", -9, .35], ["sawtooth", 9, .35], ["sine", 0, .5]]) {
+      const o = ctx.createOscillator(), gg = M.g(g); o.type = type; o.frequency.setValueAtTime(type === "sine" ? f0 / 2 * 2 : f0, t); o.detune.value = det; o.connect(gg); gg.connect(lp); out.push(o); }
+    lp.frequency.setValueAtTime((P.cut || 700) * .6, t); lp.frequency.linearRampToValueAtTime((P.cut || 700) * 1.3, end);
+    vca.gain.setValueAtTime(0, t); vca.gain.linearRampToValueAtTime(.42 * vel, t + .02);
+  } else if (P.synth === "birds") {                       // a bird: a few quick whistled chirps, gliding up or down
+    const n = 2 + Math.floor(Math.random() * 4), g0 = .05 * vel * (P.gain || 1), base = (ev.n ? mtof(ev.n) : 2600) * (.85 + Math.random() * .3);
+    for (let k = 0; k < n; k++) {
+      const o = ctx.createOscillator(), gg = M.g(0), t0 = t + k * (.06 + Math.random() * .05), d = .035 + Math.random() * .05, up = Math.random() < .6;
+      o.type = "sine"; o.frequency.setValueAtTime(base * (up ? .8 : 1.35), t0); o.frequency.exponentialRampToValueAtTime(base * (up ? 1.45 : .75), t0 + d);
+      gg.gain.setValueAtTime(0, t0); gg.gain.linearRampToValueAtTime(g0, t0 + .006); gg.gain.linearRampToValueAtTime(0, t0 + d);
+      o.connect(gg); gg.connect(P.ch.in); o.start(t0); o.stop(t0 + d + .02);
+    }
+    return;
+  } else if (P.synth === "wobble") {                       // saw + square through a resonant low-pass swung by an LFO in time
+    const lp = M.f("lowpass", 400, 7), lfo = ctx.createOscillator(), lg = M.g(1500); lp.connect(vca);
+    for (const [type, det] of [["sawtooth", -6], ["square", 6]]) { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f0; o.detune.value = det; o.connect(lp); out.push(o); }
+    const sub = ctx.createOscillator(), sg = M.g(.6); sub.frequency.value = f0 / 2; sub.connect(sg); sg.connect(vca); out.push(sub);
+    lfo.type = "sine"; lfo.frequency.value = 1 / ((ev.wob || 2) * sd); lfo.connect(lg); lg.connect(lp.frequency); lp.frequency.value = 1700; out.push(lfo);
+    vca.gain.setValueAtTime(0, t); vca.gain.linearRampToValueAtTime(.32 * vel, t + .01);
+  }
+  vca.gain.cancelScheduledValues(end); vca.gain.setTargetAtTime(0, end, rel / 3);
+  vca.connect(P.ch.in);
+  for (const o of out) { o.start(t); o.stop(end + rel * 3); }
+}
+
+/* =====================================================================
+   FAMILIES · a family is a shared skeleton (key, form, seven roles = seven rings); each subgenre fills the roles its way.
+   Because subgenres share the skeleton, one can be mixed into another like a DJ would: the same ring changes hands.
+   gen(c) writes one bar of a part. c = { sec, bib, n, last, bar, pass, R, ch, nx, D (the deck's memory), key }.
+   ===================================================================== */
+const fourFloor = c => c.last && c.sec !== "drop" && c.sec !== "outro" ? drum("x...x...x.......") : c.bib % 8 === 7 && c.sec === "drop" ? drum("x...x...x.......") : drum("x...x...x...x...");
+const rootIn = (c, lo, iv = 0, ch = c.ch) => inRange(ch.root + iv, lo);
+const nt = (s, n, len, v = .8, o = {}) => ({ s, n, len, v, ...o });
+function motif(R, notes, rhythm) { return rhythm.map(s => ({ s, d: Math.floor(R() * notes) })); }
+const tonesOf = ch => ch.iv.map(i => pcOf(ch.root + i));
+
+/* ---------- shared cumbia writing ---------- */
+// the güiro sits on top, not in front: quieter, only its brightness, each scrape damped before the next
+const guiroPart = { inst: "vc.guiro", label: "GÜIRO", vol: -19, hp: 1400, maxLen: .9, pan: .3, rev: .04, gen: c => drum("l.ssl.ssl.ssl.ss", { l: { v: .55, var: "long" }, s: { v: .42 } }) };
+const accordionLead = (inst = "gm.accordion", label = "ACCORDION", o = {}) => ({ inst, label, vol: -9, rev: .18, pan: -.08, ...o,
+  gen: c => {
+    const sc = scaleNotes(c.key, "harmonic", 64, 84), tones = tonesOf(c.ch);
+    const m = c.D.ma ??= motif(mulberry32(c.D.seed + 11), 6, [0, 2, 4, 7, 10, 12]), ans = c.bar % 2 === 1;
+    const out = m.flatMap((x, i) => {
+      if (ans && i >= 4) return [];
+      if (o.fragments && i > 2) return [];
+      let k = (x.d + (ans ? 2 : 0) + (c.pass % 2)) % sc.length; if (i === 0 || i === 3) k = sc.indexOf(nearest(sc.filter(q => tones.includes(pcOf(q))), sc[k]));
+      const top = sc[Math.max(2, k)], low = sc[Math.max(0, sc.indexOf(top) - 2)];
+      return [nt(x.s, [low, top], i === m.length - 1 || (ans && i === 3) ? 3.5 : 1.6, i === 0 ? .75 : .6)];
+    });
+    return c.sec === "intro" || c.sec === "break" ? out.slice(0, 3) : out;
+  } });
+const CUMBIA = {
+  id: "cumbia", name: "Cumbia", key: 9, keyName: "A minor", roles: ["kick", "caja", "guiro", "perc", "bass", "chords", "lead", "air"], crash: "909.cr",
+  prog: ["Am", "Dm", "E7", "Am"], progs: { drop: ["Am", "Dm", "E7", "Am", "Am", "G", "F", "E7"] },
+  form: [["intro", 4, "guiro lead perc>2 air"], ["groove", 8, "kick caja guiro perc bass chords lead>4 air"], ["groove2", 8, "kick caja guiro perc bass chords lead air"],
+         ["break", 4, "guiro lead chords air"], ["build", 4, "guiro perc lead"], ["drop", 16, "kick caja guiro perc bass chords lead air"], ["outro", 4, "guiro lead perc<2 air"]],
+  subs: [],
+};
+const cumbiaBase = {
+  id: "cumbia", name: "Cumbia", where: "Colombia", bpm: 92, swing: .53, palette: [[255, 190, 60], [255, 70, 90], [60, 200, 160]], duck: 0, delay: 3 / 16,
+  roll: { role: "perc", var: "slap" },
+  parts: {
+    kick: { inst: "vc.bombo", label: "BOMBO", vol: -2, gen: c => drum(c.sec === "drop" && c.bib % 2 ? "x.......x.....o." : "x.......x.......") },
+    caja: { inst: "vc.rope", label: "CAJA", vol: -9, rev: .1, gen: c => drum("....x..g....x..g", { x: { v: .8, var: "stick" }, g: { v: .32 } }) },
+    guiro: guiroPart,
+    perc: { inst: "vc.conga", label: "CONGAS", vol: -9, pan: -.3, rev: .1,
+      gen: c => drum(c.sec === "drop" ? "..o.g.s...o.g.s." : "..o...s...o...s.", { o: { v: .75 }, s: { v: .8, var: "slap" }, g: { v: .3, var: "ghost" } }) },
+    bass: { inst: "gm.upright", label: "BASS", vol: -4, lp: 1000,
+      gen: c => { const r = rootIn(c, 33), out = [nt(0, r, 3, .9), nt(8, r + 7, 3, .8), nt(14, c.R() < .5 ? r + 7 - 12 : r - 1, 1, .55)]; if (c.sec !== "groove") out.push(nt(6, r, 1, .5)); return out; } },
+    chords: { inst: "gm.nylon", label: "GUITAR", vol: -12, pan: .15, rev: .12,
+      gen: c => { const v = c.D.vg = voice(c.ch, 55, 69, c.D.vg, { max: 3 }); return [2, 6, 10, 14].map(s => nt(s, v, .7, .55, { strum: .006 })); } },
+    lead: accordionLead(),
+  } };
+const chicha = {
+  id: "chicha", name: "Chicha", where: "Peru · '60s–'70s", bpm: 96, swing: .52, palette: [[255, 120, 30], [170, 70, 255], [40, 255, 180]], duck: 0, delay: 3 / 16,
+  roll: { role: "perc", var: "low" },
+  parts: {
+    kick: cumbiaBase.parts.kick,
+    caja: { inst: "vc.timbal", label: "TIMBAL", vol: -10, rev: .1, gen: c => drum(c.bib % 4 === 3 ? "....x.......x.xx" : "....x.......x...") },
+    guiro: guiroPart,
+    perc: { inst: "vc.bongo", label: "BONGOS", vol: -10, pan: -.25, rev: .08, gen: c => drum("x.g.x.g.x.g.L.g.", { x: { v: .7 }, g: { v: .35, var: "mute" }, L: { v: .75, var: "low" } }) },
+    bass: { inst: "gm.finger", label: "BASS", vol: -4, lp: 950,
+      gen: c => { const r = rootIn(c, 33); return [nt(0, r, 2, .9), nt(6, r, 1, .55), nt(8, r + 7, 2, .8), nt(12, r + 9, 1, .6), nt(14, rootIn(c, 33, 0, c.nx) - 1, 1, .55)]; } },
+    chords: { inst: "gm.organ", label: "ORGAN", vol: -14, pan: .2, rev: .14, gen: c => { const v = c.D.vo = voice(c.ch, 57, 72, c.D.vo, { max: 3 }); return [2, 6, 10, 14].map(s => nt(s, v, .6, .55)); } },
+    lead: { inst: "gm.guitar", label: "WAH GUITAR", vol: -8, wah: true, rev: .2, del: .14, pan: -.1,
+      gen: c => {
+        const sc = scaleNotes(c.key, "harmonic", 64, 86), shape = [0, 1, 2, 1, 0, -1, 0, 2], rh = c.bar % 2 ? [0, 2, 4, 6, 8, 10, 12] : [0, 2, 4, 7, 10, 12];
+        const start = sc.indexOf(nearest(sc.filter(q => tonesOf(c.ch).includes(pcOf(q))), 74 + (c.pass % 2) * 3));
+        const out = rh.map((s, i) => nt(s, sc[clamp(start + shape[i % shape.length], 0, sc.length - 1)], i === rh.length - 1 ? 3 : 1.6, i % 2 ? .62 : .78));
+        return c.sec === "intro" || c.sec === "break" ? out.slice(0, 4) : out;
+      } },
+  } };
+const rebajada = { ...cumbiaBase, id: "rebajada", name: "Rebajada", where: "Monterrey", of: "cumbia", rate: .82, bpm: Math.round(92 * .82), palette: [[170, 90, 255], [255, 60, 140], [60, 120, 255]] };
+/* the new wave: digital cumbia, Andean electronica, Lima's tropical bass, Amazonian chicha-dembow
+   (in the spirit of ZZK / Chancha Vía Circuito, Animal Chuki, Dengue Dengue Dengue, Shushupe) */
+const birds = (density = .5, pitch = 88) => ({ synth: "birds", label: "BIRDS", vol: -8, rev: .45, del: .25, pan: .35,
+  gen: c => { const out = []; for (const s of [1, 5, 9, 13]) if (c.R() < density * .5) out.push(nt(s + c.R(), pitch + Math.floor(c.R() * 8), .5, .6)); return out; } });
+const quena = (sc, lo, hi, rhythm, salt, o = {}) => ({ inst: "gm.quena", label: o.label || "QUENA", vol: o.vol ?? -9, rev: .35, del: o.del ?? .3, pan: -.1,
+  gen: c => { const notes = scaleNotes(c.key, sc, lo, hi), m = c.D["q" + salt] ??= motif(mulberry32(c.D.seed + salt), 5, rhythm), tones = tonesOf(c.ch), ans = c.bar % 2 === 1;
+    if (c.sec === "build") return [];
+    return m.flatMap((x, i) => { if (ans && i > 2) return []; let k = (x.d + (ans ? 2 : 0) + c.pass) % notes.length;
+      if (i === 0) k = notes.indexOf(nearest(notes.filter(q => tones.includes(pcOf(q))), notes[k]));
+      return [nt(x.s, notes[k], i === m.length - 1 || (ans && i === 2) ? 5 : 2.2, i === 0 ? .72 : .6, { att: .04 })]; }); } });
+const charangoStrum = (steps = [2, 6, 10, 14]) => ({ inst: "vc.charango", label: "CHARANGO", vol: -10, pan: .2, rev: .14,
+  gen: c => { const v = c.D.vch = voice(c.ch, 55, 69, c.D.vch, { max: 4 }); return steps.map((s, i) => nt(s, v, .9, i % 2 ? .55 : .7, { strum: .014 })); } });
+const digital = {
+  id: "digital", name: "Digital cumbia", where: "Buenos Aires · late 2000s", bpm: 94, swing: .52, palette: [[120, 255, 80], [255, 40, 160], [255, 200, 40]], duck: .2, delay: 3 / 16, fb: .5,
+  roll: { role: "perc", var: "hi" },
+  parts: {
+    kick: { inst: "808.bd", label: "808 KICK", vol: -3, gen: c => drum(c.sec === "drop" && c.bib % 2 ? "x.....x.x......." : "x.......x.......") },
+    caja: { inst: "808.cp", label: "808 CLAP", vol: -12, rev: .2, del: .15, gen: c => drum("....x.......x...") },
+    guiro: guiroPart,
+    perc: { inst: "vc.leguero", label: "BOMBO LEGÜERO", vol: -6, pan: -.15, rev: .1, gen: c => drum("x..a..x.....a.a.", { x: { v: .85 }, a: { v: .55, var: "aro" } }) },
+    bass: { synth: "sub808", label: "SUB BASS", vol: -4, gen: c => { const r = rootIn(c, 33); return [nt(0, r, 3, .9), nt(8, r + 7, 3, .8), nt(14, r + 12, .8, .55, { slide: true })]; } },
+    chords: charangoStrum(),
+    lead: quena("harmonic", 69, 88, [0, 3, 6, 10], 71),
+    air: birds(.5),
+  } };
+const andean = {
+  id: "andean", name: "Andean electronica", where: "Andes · 2010s", bpm: 90, swing: .5, palette: [[255, 200, 90], [90, 200, 160], [200, 120, 255]], duck: .12, delay: 1 / 4, fb: .5,
+  prog: ["Am", "G", "C", "E7"], roll: null, mix: "filter",
+  parts: {
+    kick: { inst: "808.bd", label: "SOFT KICK", vol: -6, lp: 1500, gen: c => drum("x.....x.x.......") },
+    caja: { inst: "vc.frame", label: "FRAME DRUM", vol: -12, rev: .2, gen: c => drum("....h.......h..h", { h: { v: .6, var: "hi" } }) },
+    guiro: { inst: "vc.shaker", label: "CAXIXI", vol: -16, pan: .3, rev: .1, gen: c => drum("o.u.o.u.o.u.o.u.", { o: { v: .5 }, u: { v: .35, var: "up" } }) },
+    perc: { inst: "vc.leguero", label: "BOMBO LEGÜERO", vol: -6, pan: -.15, rev: .15, gen: c => drum("x..x.a..x..x.a..", { x: { v: .8 }, a: { v: .5, var: "aro" } }) },  // a huayno lilt: long–short–short
+    bass: { synth: "reese", label: "DEEP BASS", vol: -7, cut: 420, gen: c => [nt(0, rootIn(c, 33), 7, .75), nt(8, rootIn(c, 33) + 7, 7, .65)] },
+    chords: { inst: "vc.balafon", label: "BALAFON", vol: -9, rev: .25, del: .2, pan: .15,
+      gen: c => { const v = voice(c.ch, 57, 76, null, { max: 3 }), seq = [0, 1, 2, 1, 0, 2, 1, 2]; return [0, 2, 3, 6, 8, 10, 11, 14].map((s, i) => nt(s, v[seq[i] % v.length] + (i % 4 === 3 && v[seq[i] % v.length] < 70 ? 12 : 0), 1, i % 2 ? .5 : .65)); } },
+    lead: quena("penta", 69, 88, [0, 4, 8, 12], 72, { label: "QUENA", del: .4 }),
+    air: birds(.8),
+  } };
+const tropical = {
+  id: "tropical", name: "Tropical bass", where: "Lima · 2010s", bpm: 104, swing: .5, palette: [[220, 40, 70], [80, 50, 230], [255, 140, 40]], duck: .3, delay: 3 / 16, fb: .5,
+  prog: ["Am", "Am", "F", "E7"], roll: { role: "caja", var: "slap" },
+  parts: {
+    kick: { inst: "909.bd", label: "KICK", vol: -2, gen: c => drum(c.sec === "drop" ? "x..x..x...x..x.." : "x..x..x...x.....") },
+    caja: { inst: "vc.cajon", label: "CAJÓN", vol: -8, rev: .12, gen: c => drum("....s..g.g..s.g.", { s: { v: .85, var: "slap" }, g: { v: .32, var: "ghost" } }) },
+    guiro: { inst: "vc.quijada", label: "QUIJADA", vol: -12, pan: .3, rev: .2, gen: c => c.bar % 2 ? drum("............x...") : drum("......x.........") },
+    perc: { inst: "vc.slit", label: "LOG DRUM", vol: -11, pan: -.25, rev: .15, del: .15, gen: c => drum("x..l..x...l.x...", { x: { v: .7 }, l: { v: .75, var: "lo" } }) },
+    bass: { synth: "sub808", label: "DARK SUB", vol: -2, gen: c => { const r = rootIn(c, 28); return [nt(0, r, 5, .95), nt(6, r, 2, .7), nt(10, r + 12, 1.5, .65), nt(13, r + 7, 2.5, .7, { slide: true })]; } },
+    chords: { inst: "gm.halo", label: "DARK PAD", vol: -15, rev: .45, gen: c => [nt(0, c.D.vp = voice(c.ch, 50, 67, c.D.vp, { max: 3 }), 16, .5, { att: .6 })] },
+    lead: { inst: "gm.guitar", label: "CHICHA GUITAR", vol: -10, wah: true, rev: .25, del: .35, pan: -.15,
+      gen: c => { if (c.bar % 2 || c.sec === "build") return []; const sc = scaleNotes(c.key, "harmonic", 64, 84), m = c.D.tg ??= motif(mulberry32(c.D.seed + 73), 6, [0, 2, 4, 7]);
+        return m.map((x, i) => nt(x.s, sc[(x.d + c.pass) % sc.length], i === 3 ? 4 : 1.6, .7)); } },
+    air: { inst: "gm.oohs", label: "VOICES", vol: -14, rev: .5, del: .3, gen: c => c.bar % 4 ? [] : [nt(0, c.D.vv = voice(c.ch, 52, 67, c.D.vv, { max: 3 }), 12, .5, { att: .8 })] },
+  } };
+const selva = {
+  id: "selva", name: "Selva bass", where: "Peruvian Amazon · 2010s", bpm: 104, swing: .5, palette: [[60, 255, 140], [255, 220, 40], [255, 60, 120]], duck: .25, delay: 3 / 16, fb: .45,
+  prog: ["Am", "Dm", "E7", "Am"], roll: { role: "caja" },
+  parts: {
+    kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: fourFloor },
+    caja: { inst: "vc.timbal", label: "DEMBOW TIMBAL", vol: -8, rev: .1, gen: c => drum(c.sec === "drop" ? "...x..x.x..x..x." : "...x..x....x..x.") },
+    guiro: guiroPart,
+    perc: { inst: "vc.slit", label: "LOG DRUM", vol: -12, pan: -.25, rev: .12, gen: c => drum("x.l...x.l.x.l...", { x: { v: .7 }, l: { v: .7, var: "lo" } }) },
+    bass: { synth: "sub808", label: "808 BASS", vol: -3, gen: c => { const r = rootIn(c, 33); return [nt(0, r, 2.5, .9), nt(3, r, 1, .6), nt(6, r, 2, .75), nt(11, r + 7, 1, .6), nt(14, r + 12, 1.5, .65, { slide: true })]; } },
+    chords: { inst: "gm.guitar", label: "AMAZON GUITAR", vol: -11, rev: .18, del: .2, pan: .2,
+      gen: c => { const v = voice(c.ch, 60, 76, null, { max: 3 }), seq = [0, 2, 1, 2, 0, 2, 1, 2]; return [0, 2, 4, 6, 8, 10, 12, 14].map((s, i) => nt(s, v[seq[i] % v.length], .9, i % 4 ? .5 : .66)); } },
+    lead: { inst: "gm.square", label: "SYNTH BLEEPS", vol: -15, del: .35, lp: 3500, gen: c => { const sc = scaleNotes(c.key, "harmonic", 76, 92), m = c.D.sb ??= motif(mulberry32(c.D.seed + 74), 6, [1, 3, 7, 9, 13]);
+      return c.sec === "intro" ? [] : m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], .4, .55)); } },
+    air: birds(.9, 91),
+  } };
+CUMBIA.subs = [cumbiaBase, chicha, rebajada, digital, andean, tropical, selva];
+
+/* ---------- house ---------- */
+const HOUSE = {
+  id: "house", name: "House", key: 5, keyName: "F minor", roles: ["kick", "clap", "hats", "perc", "bass", "chords", "lead"], crash: "909.cr",
+  prog: ["Fm7", "Dbmaj7", "Eb", "Cm7"],
+  form: [["intro", 8, "kick hats perc>4"], ["groove", 8, "kick clap hats perc bass"], ["groove2", 8, "kick clap hats perc bass chords lead>4"],
+         ["break", 4, "chords lead perc"], ["build", 4, "kick<2 hats perc chords"], ["drop", 16, "kick clap hats perc bass chords lead"], ["outro", 8, "kick hats perc<4"]],
+  subs: [],
+};
+function acidSeq(R) {                                       // a 16-step 303 line: notes, rests, accents, slides
+  const pool = [0, 0, 0, 12, 0, 3, 7, 10, 12, 15, -2, 5];
+  return Array.from({ length: 16 }, (_, s) => R() < (s % 4 === 0 ? .1 : .3) ? null : { d: pool[Math.floor(R() * pool.length)], acc: R() < .3, slide: R() < .22, len: R() < .2 ? 1.8 : .9 });
+}
+const chicago = {
+  id: "chicago", name: "Chicago house", where: "Chicago · mid-'80s", bpm: 124, swing: .55, palette: [[255, 255, 255], [255, 170, 40], [90, 140, 255]], duck: .3, delay: 3 / 16,
+  roll: { role: "clap" },
+  parts: {
+    kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor },
+    clap: { inst: "909.cp", label: "909 CLAP", vol: -9, rev: .12, gen: c => drum("....x.......x...") },
+    hats: { inst: "909.hhx", label: "909 HATS", vol: -15, pan: .15, gen: c => drum(c.sec === "drop" ? "g.O.g.O.g.O.g.O." : "..O...O...O...O.", { O: { v: .6, var: "open" }, g: { v: .35 } }) },
+    perc: { inst: "vc.tamb", label: "TAMBOURINE", vol: -15, pan: -.2, gen: c => drum("....x.......x..o") },
+    bass: { inst: "gm.sb1", label: "BASS", vol: -5, lp: 900, gen: c => { const r = rootIn(c, 29); return [nt(0, r, 1, .9), nt(3, r + 12, .7, .6), nt(6, r, 1, .8), nt(10, r + 12, .7, .65), nt(12, r, 1, .7)]; } },
+    chords: { inst: "sal.piano", label: "PIANO", vol: -8, rev: .14, gen: c => { const v = c.D.vk = voice(c.ch, 60, 76, c.D.vk, { max: 4 }); return [[0, 1.5], [3, 1], [6, 1.5], [10, 1], [13, 1]].map(([s, l], i) => nt(s, v, l, i % 2 ? .6 : .72, { strum: .004 })); } },
+    lead: { inst: "gm.organ", label: "ORGAN", vol: -14, rev: .15, gen: c => { const sc = scaleNotes(c.key, "penta", 72, 86), m = c.D.mo ??= motif(mulberry32(c.D.seed + 9), 5, [0, 3, 6, 10, 12]); return m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], 1.2, .6)); } },
+  } };
+const deep = {
+  id: "deep", name: "Deep house", where: "Chicago → New York · late '80s", bpm: 120, swing: .54, palette: [[255, 170, 90], [150, 90, 255], [255, 90, 140]], duck: .3, delay: 3 / 16,
+  prog: ["Fm9", "Dbmaj9", "Ebadd9", "Cm9"], roll: { role: "clap" },                // same roots as the family, richer colours
+  parts: {
+    kick: { inst: "909.bd", label: "909 KICK", vol: -3, gen: fourFloor },
+    clap: { inst: "909.rim", label: "RIM", vol: -13, rev: .14, gen: c => drum("....x.......x...") },
+    hats: { inst: "909.hhx", label: "HATS", vol: -16, pan: .15, gen: c => drum("..x...x...x...x.") },
+    perc: { inst: "vc.shaker", label: "SHAKER", vol: -16, pan: -.22, rev: .05, gen: c => drum("ogugogugogugogug", { o: { v: .55 }, g: { v: .3 }, u: { v: .4, var: "up" } }) },
+    bass: { inst: "gm.finger", label: "FINGER BASS", vol: -4, lp: 750,
+      gen: c => { const r = rootIn(c, 29), nx = rootIn(c, 29, 0, c.nx); return [nt(0, r, 2.5, .88), nt(3, r, .9, .5), nt(7, r + 7, 1.5, .66), nt(10, r + 12, 1, .72), nt(14, c.R() < .5 ? nx - 1 : r + 10, 1, .55)]; } },
+    chords: { inst: "gm.epiano", label: "RHODES", vol: -8, rev: .22, del: .12,
+      gen: c => { const v = c.D.vk = voice(c.ch, 55, 74, c.D.vk, { rootless: true, max: 4 }); const rh = [[[2, 2], [5, 3], [12, 2]], [[0, 3], [6, 2], [10, 4]]][(c.pass + (c.bib >> 2)) % 2];
+        return rh.map(([s, l], i) => nt(s, v, l, i === 0 ? .72 : .58, { strum: .008 })); } },
+    lead: { inst: "gm.pad", label: "PAD", vol: -17, rev: .4, gen: c => [nt(0, c.D.vp = voice(c.ch, 50, 69, c.D.vp, { max: 4 }), 16, .5, { att: .4 })] },
+  } };
+const acid = {
+  id: "acid", name: "Acid house", where: "Chicago · 1987", bpm: 124, swing: .5, palette: [[200, 255, 40], [255, 60, 200], [40, 220, 255]], duck: .25, delay: 3 / 16,
+  prog: ["Fm"], roll: { role: "clap" },
+  parts: {
+    kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor },
+    clap: { inst: "909.cp", label: "909 CLAP", vol: -10, rev: .1, gen: c => drum("....x.......x...") },
+    hats: { inst: "909.hhx", label: "909 HATS", vol: -15, pan: .15, gen: c => drum("x.O.x.O.x.O.x.O.", { O: { v: .55, var: "open" }, x: { v: .45 } }) },
+    perc: { inst: "808.cb", label: "COWBELL", vol: -20, pan: -.3, gen: c => drum(c.bar % 2 ? "......x........." : "..........x.....") },
+    bass: { synth: "acid", label: "TB-303", vol: -6, del: .1,
+      gen: c => { const sq = c.D.acid ??= acidSeq(mulberry32(c.D.seed + 3)); if (c.bar % 8 === 0 && c.bar) { const i = Math.floor(c.R() * 16); sq[i] = acidSeq(c.R)[i]; }
+        const r = rootIn(c, 29); return sq.flatMap((x, s) => x ? [{ s, n: r + x.d, len: x.len, v: .8, acc: x.acc, slide: x.slide }] : []); } },
+    chords: null, lead: null,
+  } };
+const tech = {
+  id: "tech", name: "Tech house", where: "UK · late '90s", bpm: 126, swing: .52, palette: [[40, 220, 255], [255, 255, 255], [255, 60, 90]], duck: .3, delay: 3 / 16,
+  prog: ["Fm"], roll: { role: "clap" },
+  parts: {
+    kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor },
+    clap: { inst: "909.cp", label: "CLAP", vol: -10, rev: .08, gen: c => drum("....x.......x...") },
+    hats: { inst: "909.hhx", label: "HATS 16THS", vol: -16, pan: .15, gen: c => drum("xgOgxgOgxgOgxgOg", { O: { v: .5, var: "open" }, x: { v: .45 }, g: { v: .25 } }) },
+    perc: { inst: "909.rim", label: "RIM", vol: -15, pan: -.25, rev: .06, gen: c => drum(["..x..x....x..x..", "..x..x...x...x.."][c.bar % 2]) },
+    bass: { inst: "gm.sb1", label: "ROLLING BASS", vol: -4, lp: 600, gen: c => { const r = rootIn(c, 29); return [2, 3, 6, 7, 10, 11, 14, 15].map((s, i) => nt(s, r, .5, i % 2 ? .55 : .85)); } },
+    chords: null, lead: null,
+  } };
+const ambient = {
+  id: "ambient", name: "Ambient house", where: "London · ~1990", bpm: 116, swing: .5, palette: [[150, 200, 255], [255, 200, 240], [120, 255, 220]], duck: .1, delay: 1 / 4, fb: .5,
+  prog: ["Fm9", "Dbmaj9", "Ebsus", "Cm9"], roll: null, mix: "filter",
+  parts: {
+    kick: { inst: "909.bd", label: "SOFT KICK", vol: -8, lp: 1800, gen: fourFloor },
+    clap: null,
+    hats: { inst: "vc.shaker", label: "SHAKER", vol: -18, pan: .2, rev: .2, gen: c => drum("o.u.o.u.o.u.o.u.", { o: { v: .45 }, u: { v: .3, var: "up" } }) },
+    perc: null,
+    bass: { inst: "gm.finger", label: "LONG BASS", vol: -6, lp: 600, gen: c => [nt(0, rootIn(c, 29), 12, .65)] },
+    chords: { inst: "gm.halo", label: "HALO PAD", vol: -11, rev: .5, gen: c => [nt(0, c.D.vp = voice(c.ch, 53, 72, c.D.vp, { max: 4 }), 16, .55, { att: .8 })] },
+    lead: { inst: "sal.piano", label: "PIANO", vol: -10, rev: .45, del: .4,
+      gen: c => { const sc = scaleNotes(c.key, "minor", 72, 89), m = c.D.mp ??= motif(mulberry32(c.D.seed + 13), 6, [0, 6, 10]); return c.bar % 2 ? [] : m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], 4, .5)); } },
+  } };
+const minimalH = {
+  id: "minimal", name: "Minimal house", where: "Germany · 2000s", bpm: 124, swing: .54, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
+  prog: ["Fm7"], roll: { role: "clap" },
+  parts: {
+    kick: { inst: "909.bd", label: "KICK", vol: -2, gen: fourFloor },
+    clap: { inst: "909.rim", label: "CLICK", vol: -15, pan: .22, rev: .1, del: .08, gen: c => drum(["......x.......x.", "...x......x.....", "......x..x....x.", ".......x.....x.."][(c.bar >> 1) % 4]) },
+    hats: { inst: "808.hh", label: "HAT", vol: -18, pan: .1, gen: c => drum("..x...x...x...x.") },
+    perc: { inst: "vc.wood", label: "WOOD TICKS", vol: -21, pan: -.35, rev: .06, gen: c => drum("o..o..o..o..o...") },
+    bass: { inst: "gm.sb1", label: "BASS BLIPS", vol: -6, lp: 520, gen: c => { const r = rootIn(c, 29), out = [nt(3, r, .6, .8), nt(11, r, .6, .75)]; if (c.R() < .35) out.push(nt(7, r, .5, .55)); return out; } },
+    chords: { inst: "gm.poly", label: "DUB STAB", vol: -10, rev: .32, del: .5, lp: 2400, gen: c => c.bar % 2 ? [] : [nt([6, 10, 3, 14][(c.bar >> 1) % 4], c.D.vs = voice(c.ch, 53, 67, c.D.vs, { max: 4 }), .5, .75)] },
+    lead: null,
+  } };
+HOUSE.subs = [chicago, deep, acid, tech, ambient, minimalH];
+const FAMILIES = [CUMBIA, HOUSE];
+for (const F of FAMILIES) for (const S of F.subs) S.fam = F;
+function subUrls(S) { return Object.values(S.parts).filter(Boolean).flatMap(P => P.inst ? instUrls(P.inst) : []); }
+
+/* =====================================================================
+   MORE FAMILIES · techno, disco, hip hop, breaks & bass, dembow, electro. Same rules: one skeleton per family
+   (key, form, seven roles), each style fills the roles its way, styles in a family can be mixed into each other.
+   ===================================================================== */
+const Dg = (a, b, map) => c => drum(c.sec === "drop" && b ? b : a, map);           // a drum part: groove pattern, drop pattern
+const OPEN = { O: { v: .6, var: "open" }, x: { v: .5 }, g: { v: .28 } };
+const lineBass = (lo, steps) => c => { const r = rootIn(c, lo); return steps.map(([s, iv, len, v, o]) => nt(s, r + iv, len, v, o || {})); };
+const stab = (lo, hi, rhythm, o = {}) => c => { const v = c.D["v" + lo + hi] = voice(c.ch, lo, hi, c.D["v" + lo + hi], { max: o.max || 4, rootless: o.rootless });
+  return rhythm.map(([s, len, vel]) => nt(s, v, len, vel ?? .65, { strum: o.strum || 0 })); };
+const padP = (lo, hi, att = .5) => c => [nt(0, c.D["p" + lo] = voice(c.ch, lo, hi, c.D["p" + lo], { max: 4 }), 16, .5, { att })];
+const melody = (sc, lo, hi, rhythm, salt, o = {}) => c => {                            // a seeded motif held to the scale, answered on odd bars
+  const notes = scaleNotes(c.key, sc, lo, hi), m = c.D["m" + salt] ??= motif(mulberry32(c.D.seed + salt), o.span || 5, rhythm);
+  const tones = tonesOf(c.ch), ans = c.bar % 2 === 1;
+  return m.flatMap((x, i) => { if (ans && o.answer === "rest" && i > 1) return []; let k = (x.d + (ans ? 2 : 0) + c.pass) % notes.length;
+    if (i === 0) k = notes.indexOf(nearest(notes.filter(q => tones.includes(pcOf(q))), notes[k]));
+    return [nt(x.s, notes[k], o.len || 1.5, i === 0 ? .72 : .6)]; });
+};
+const formOf = (r, kind = "std") => {                                                   // the family form, written with role letters
+  const map = { K: r[0], S: r[1], H: r[2], P: r[3], B: r[4], C: r[5], L: r[6] }, sub = s => s.replace(/[KSHPBCL]/g, ch => map[ch]);
+  const F = kind === "hiphop"
+    ? [["intro", 4, "C"], ["groove", 8, "K S H C B"], ["groove2", 8, "K S H P C B L>4"], ["break", 4, "C B<2 L"], ["build", 2, "C S"], ["drop", 16, "K S H P B C L"], ["outro", 4, "C H<2"]]
+    : [["intro", 8, "K H P>4"], ["groove", 8, "K S H P B"], ["groove2", 8, "K S H P B C L>4"], ["break", 4, "C L P"], ["build", 4, "K<2 H P C"], ["drop", 16, "K S H P B C L"], ["outro", 8, "K H P<4"]];
+  return F.map(([a, n, s]) => [a, n, sub(s)]);
+};
+
+/* ---------------------------------------------------------------- TECHNO */
+const TR = ["kick", "clap", "hats", "perc", "bass", "chords", "lead"];
+const TECHNO = { id: "techno", name: "Techno", key: 9, keyName: "A minor", roles: TR, crash: "909.cr", prog: ["Am7"], form: formOf(TR), subs: [] };
+TECHNO.subs = [
+  { id: "detroit", name: "Detroit techno", where: "Detroit · mid-'80s", bpm: 128, swing: .52, palette: [[90, 160, 255], [255, 255, 255], [255, 120, 60]], duck: .25, delay: 3 / 16,
+    prog: ["Am7", "Am7", "Fmaj7", "Em7"], roll: { role: "clap" },
+    parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor }, clap: { inst: "909.cp", label: "909 CLAP", vol: -10, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "909 HATS", vol: -15, pan: .15, gen: Dg("x.O.x.O.x.O.x.O.", "xgOgxgOgxgOgxgOg", OPEN) },
+      perc: { inst: "909.rim", label: "RIM", vol: -15, pan: -.2, gen: Dg("...x..x....x..x.") },
+      bass: { inst: "gm.sb1", label: "BASS", vol: -5, lp: 800, gen: lineBass(33, [[2, 0, .8, .8], [6, 0, .8, .7], [10, 0, .8, .8], [14, 12, .6, .6]]) },
+      chords: { inst: "gm.poly", label: "CHORD STABS", vol: -11, rev: .2, del: .25, gen: stab(55, 69, [[0, .6], [3, .6, .55], [10, .6]]) },
+      lead: { inst: "gm.sstrings", label: "STRINGS", vol: -14, rev: .35, gen: padP(57, 76, .6) } } },
+  { id: "minimalt", name: "Minimal techno", where: "Berlin · Cologne · 2000s", bpm: 126, swing: .51, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "909.bd", label: "KICK", vol: -2, gen: fourFloor },
+      clap: { inst: "909.rim", label: "CLICK", vol: -15, pan: .22, rev: .1, del: .08, gen: c => drum(["......x.......x.", "...x......x.....", "......x..x....x.", ".......x.....x.."][(c.bar >> 1) % 4]) },
+      hats: { inst: "808.hh", label: "HAT", vol: -18, pan: .1, gen: Dg("..x...x...x...x.") },
+      perc: { inst: "vc.wood", label: "WOOD TICKS", vol: -21, pan: -.35, rev: .06, gen: Dg("o..o..o..o..o...") },
+      bass: { inst: "gm.sb1", label: "BASS BLIPS", vol: -6, lp: 520, gen: lineBass(33, [[3, 0, .6, .8], [11, 0, .6, .75]]) },
+      chords: { inst: "gm.poly", label: "DUB STAB", vol: -10, rev: .32, del: .5, lp: 2400, gen: c => c.bar % 2 ? [] : stab(53, 67, [[[6, 10, 3, 14][(c.bar >> 1) % 4], .5, .75]])(c) },
+      lead: null } },
+  { id: "dubtechno", name: "Dub techno", where: "Berlin · 1993", bpm: 124, swing: .5, palette: [[60, 160, 200], [30, 70, 120], [200, 230, 255]], duck: .15, delay: 3 / 16, fb: .62, mix: "filter",
+    roll: null,
+    parts: { kick: { inst: "909.bd", label: "SOFT KICK", vol: -4, lp: 2200, gen: fourFloor }, clap: { inst: "909.rim", label: "RIM", vol: -18, rev: .3, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hhx", label: "HATS", vol: -19, pan: .15, gen: Dg("..x...x...x...x.", "g.x.g.x.g.x.g.x.", OPEN) },
+      perc: { inst: "vc.shaker", label: "SHAKER", vol: -20, pan: -.25, rev: .2, gen: Dg("o.u.o.u.o.u.o.u.", null, { o: { v: .4 }, u: { v: .25, var: "up" } }) },
+      bass: { inst: "gm.sb1", label: "SUB", vol: -5, lp: 300, gen: lineBass(33, [[0, 0, 6, .8], [10, 0, 3, .6]]) },
+      chords: { inst: "gm.poly", label: "DUB CHORD", vol: -9, rev: .45, del: .6, lp: 1500, gen: stab(53, 67, [[2, .4, .7], [7, .4, .5], [12, .4, .55]]) },
+      lead: null } },
+  { id: "acidt", name: "Acid techno", where: "London · '90s", bpm: 134, swing: .5, palette: [[200, 255, 40], [255, 40, 120], [255, 255, 255]], duck: .25, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -1, drive: .8, gen: fourFloor }, clap: { inst: "909.cp", label: "909 CLAP", vol: -9, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "909 HATS", vol: -15, pan: .15, gen: Dg("xgOgxgOgxgOgxgOg", null, OPEN) },
+      perc: { inst: "909.toms", label: "909 TOMS", vol: -16, pan: -.2, gen: Dg("......x.....m...", "...l..x...m...x.", { m: { v: .7, var: "mid" }, l: { v: .7, var: "low" } }) },
+      bass: { synth: "acid", label: "TB-303", vol: -5, del: .12, acidHi: true,
+        gen: c => { const sq = c.D.acid ??= acidSeq(mulberry32(c.D.seed + 3)); if (c.bar % 4 === 0 && c.bar) { const i = Math.floor(c.R() * 16); sq[i] = acidSeq(c.R)[i]; }
+          const r = rootIn(c, 33); return sq.flatMap((x, s) => x ? [{ s, n: r + x.d, len: x.len, v: .85, acc: x.acc, slide: x.slide }] : []); } },
+      chords: null, lead: null } },
+  { id: "industrial", name: "Industrial techno", where: "Berlin · Birmingham · '90s–2010s", bpm: 134, swing: .5, palette: [[255, 60, 40], [140, 140, 150], [255, 200, 180]], duck: .2, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "909.bd", label: "DISTORTED KICK", vol: -2, drive: 3, lp: 4000, gen: fourFloor },
+      clap: { inst: "909.sd", label: "NOISY SNARE", vol: -10, drive: 1.5, rev: .15, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "OPEN HATS", vol: -15, pan: .2, gen: Dg("..O...O...O...O.", null, OPEN) },
+      perc: { inst: "vc.anvil", label: "ANVIL", vol: -14, pan: -.25, rev: .25, gen: Dg("..x.......x..x..") },
+      bass: { inst: "gm.sb1", label: "RUMBLE", vol: -5, lp: 260, rev: .25, gen: lineBass(33, [[2, 0, 1.5, .8], [6, 0, 1.5, .7], [10, 0, 1.5, .8], [14, 0, 1.5, .7]]) },
+      chords: null, lead: { inst: "vc.brake", label: "BRAKE DRUM", vol: -17, rev: .35, del: .3, gen: c => c.bar % 2 ? [] : drum("......x.........") } } },
+  { id: "tribal", name: "Tribal techno", where: "late '90s", bpm: 132, swing: .5, palette: [[255, 150, 40], [40, 200, 160], [255, 240, 200]], duck: .2, delay: 3 / 16,
+    roll: { role: "perc", var: "low" },
+    parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor }, clap: { inst: "909.rim", label: "RIM", vol: -15, gen: Dg("....x.......x...") },
+      hats: { inst: "vc.shakerL", label: "SHAKER", vol: -18, pan: .2, gen: Dg("xgogxgogxgogxgog", null, { x: { v: .5 }, o: { v: .4 }, g: { v: .25 } }) },
+      perc: { inst: "909.toms", label: "TOMS 3-3-2", vol: -11, pan: -.15, rev: .1, gen: Dg("x..m..l.x..m..l.", "x..m..l.x.mm.ll.", { x: { v: .8 }, m: { v: .75, var: "mid" }, l: { v: .8, var: "low" } }) },
+      bass: { inst: "gm.sb1", label: "SUB", vol: -6, lp: 400, gen: lineBass(33, [[2, 0, 1, .8], [10, 0, 1, .7]]) },
+      chords: null, lead: { inst: "vc.conga", label: "CONGAS", vol: -12, pan: .25, rev: .1, gen: Dg("..o.s...o.s.o...", null, { o: { v: .7 }, s: { v: .8, var: "slap" } }) } } },
+];
+
+/* ---------------------------------------------------------------- DISCO */
+const DR = ["kick", "snare", "hats", "perc", "bass", "chords", "lead"];
+const DISCO = { id: "disco", name: "Disco", key: 2, keyName: "D minor", roles: DR, crash: "909.cr", prog: ["Dm9", "G9", "Dm9", "G9"], form: formOf(DR), subs: [] };
+const octBass = lo => c => { const r = rootIn(c, lo); return [0, 2, 4, 6, 8, 10, 12, 14].map(s => nt(s, s % 4 === 2 || s % 4 === 3 ? r + 12 : r, 1.4, s % 4 ? .65 : .9)); };
+DISCO.subs = [
+  { id: "disco", name: "Disco", where: "New York · '70s", bpm: 118, swing: .52, palette: [[255, 200, 60], [255, 80, 160], [255, 255, 255]], duck: .1, delay: 1 / 4,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "vc.bombo", label: "KICK", vol: -2, gen: fourFloor }, snare: { inst: "vc.timbal", label: "SNARE", vol: -8, rev: .12, gen: Dg("....x.......x...") },
+      hats: { inst: "vc.hihat", label: "HI-HAT", vol: -13, pan: .2, gen: Dg("g.O.g.O.g.O.g.O.", null, OPEN) },
+      perc: { inst: "vc.tamb", label: "TAMBOURINE", vol: -15, pan: -.25, gen: Dg("x.o.x.o.x.o.x.o.") },
+      bass: { inst: "gm.finger", label: "OCTAVE BASS", vol: -4, lp: 1200, gen: octBass(26) },
+      chords: { inst: "gm.mutegtr", label: "MUTED GUITAR", vol: -12, pan: .3, gen: c => { const v = voice(c.ch, 60, 72, null, { max: 3 }); return [1, 3, 5, 7, 9, 11, 13, 15].map((s, i) => nt(s, v[i % v.length], .4, i % 2 ? .5 : .65)); } },
+      lead: { inst: "gm.strings", label: "STRINGS", vol: -11, rev: .3, gen: melody("dorian", 69, 86, [0, 4, 6, 10], 21, { len: 3 }) } } },
+  { id: "italo", name: "Italo disco", where: "Italy · early '80s", bpm: 122, swing: .5, palette: [[255, 60, 200], [60, 220, 255], [255, 220, 120]], duck: .15, delay: 3 / 16,
+    prog: ["Dm", "Bb", "C", "Am"], roll: { role: "snare" },
+    parts: { kick: { inst: "linn.bd", label: "LINN KICK", vol: -2, gen: fourFloor }, snare: { inst: "linn.sd", label: "LINN SNARE", vol: -8, gate: .5, gen: Dg("....x.......x...") },
+      hats: { inst: "linn.hhx", label: "LINN HATS", vol: -15, pan: .15, gen: Dg("x.O.x.O.x.O.x.O.", null, OPEN) },
+      perc: { inst: "linn.toms", label: "TOMS", vol: -16, gen: c => c.bib % 4 === 3 ? drum("............x.ml", { m: { v: .7, var: "mid" }, l: { v: .8, var: "low" } }) : [] },
+      bass: { inst: "gm.sb2", label: "GALLOP BASS", vol: -5, lp: 1500, gen: c => { const r = rootIn(c, 26); return [0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14, 15].map(s => nt(s, s % 4 === 3 ? r + 12 : r, .7, s % 2 ? .55 : .8)); } },
+      chords: { inst: "gm.dx", label: "DX PIANO", vol: -11, rev: .2, gen: stab(57, 72, [[0, 1], [6, 1, .55], [10, 1.5, .6]]) },
+      lead: { inst: "gm.square", label: "SYNTH LEAD", vol: -12, del: .25, gen: melody("minor", 69, 86, [0, 2, 4, 6, 10], 22) } } },
+  { id: "hinrg", name: "Hi-NRG", where: "San Francisco · New York · early '80s", bpm: 128, swing: .5, palette: [[255, 40, 120], [255, 255, 255], [80, 120, 255]], duck: .2, delay: 3 / 16,
+    prog: ["Dm", "Dm", "Bb", "C"], roll: { role: "snare" },
+    parts: { kick: { inst: "707.bd", label: "707 KICK", vol: -2, gen: fourFloor }, snare: { inst: "707.cp", label: "707 CLAP", vol: -9, gen: Dg("....x.......x...") },
+      hats: { inst: "707.hh", label: "707 HATS", vol: -15, gen: Dg("x.O.x.O.x.O.x.O.", null, OPEN) },
+      perc: { inst: "707.tb", label: "TAMBOURINE", vol: -17, gen: Dg("....x.......x...") },
+      bass: { inst: "gm.sb1", label: "OCTAVE 16THS", vol: -5, lp: 1400, gen: c => { const r = rootIn(c, 26); return Array.from({ length: 16 }, (_, s) => nt(s, s % 2 ? r + 12 : r, .6, s % 2 ? .75 : .6)); } },
+      chords: { inst: "gm.sbrass", label: "SYNTH BRASS", vol: -12, rev: .2, gen: stab(57, 72, [[0, 1.5], [6, .7, .55], [8, 1.5, .6]]) },
+      lead: { inst: "gm.sstrings", label: "SYNTH STRINGS", vol: -13, rev: .3, gen: padP(57, 76) } } },
+  { id: "nudisco", name: "Nu-disco", where: "2000s", bpm: 116, swing: .54, palette: [[255, 150, 90], [120, 90, 255], [60, 230, 200]], duck: .25, delay: 3 / 16,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "KICK", vol: -3, gen: fourFloor }, snare: { inst: "909.cp", label: "CLAP", vol: -10, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "HATS", vol: -16, pan: .15, gen: Dg("..O...O...O...O.", "g.O.g.O.g.O.g.O.", OPEN) },
+      perc: { inst: "vc.shaker", label: "SHAKER", vol: -17, pan: -.2, gen: Dg("ogugogugogugogug", null, { o: { v: .5 }, g: { v: .28 }, u: { v: .38, var: "up" } }) },
+      bass: { inst: "gm.slap", label: "SLAP BASS", vol: -5, lp: 1600, gen: lineBass(26, [[0, 0, 1, .9], [3, 12, .5, .7], [6, 0, .8, .7], [8, 7, 1, .75], [11, 12, .5, .65], [14, 10, .8, .6]]) },
+      chords: { inst: "gm.epiano", label: "RHODES", vol: -10, rev: .2, gen: stab(55, 72, [[2, 2], [7, 1, .55], [10, 3]], { rootless: true }) },
+      lead: { inst: "gm.mutegtr", label: "GUITAR", vol: -13, pan: .3, del: .2, gen: melody("dorian", 62, 79, [1, 3, 6, 9, 11, 14], 23, { len: .5 }) } } },
+  { id: "frenchtouch", name: "French touch", where: "Paris · late '90s", bpm: 124, swing: .52, palette: [[255, 210, 80], [255, 70, 70], [80, 160, 255]], duck: .45, delay: 3 / 16,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -1, gen: fourFloor }, snare: { inst: "909.cp", label: "CLAP", vol: -9, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "HATS", vol: -15, pan: .15, gen: Dg("..O...O...O...O.", null, OPEN) },
+      perc: null,
+      bass: { inst: "gm.finger", label: "FILTERED BASS", vol: -4, lp: 900, gen: lineBass(26, [[0, 0, 1.5, .9], [3, 0, .5, .6], [6, 12, .8, .7], [10, 0, 1, .8], [13, 7, 1, .6]]) },
+      chords: { inst: "gm.strings", label: "FILTERED LOOP", vol: -9, lp: 1800, sweep: true, sweepBpm: 124, rev: .15, gen: stab(57, 74, [[0, 1.5], [3, 1, .6], [6, 1.5], [10, 1, .6], [12, 2]]) },
+      lead: { inst: "gm.brass", label: "HORNS", vol: -13, rev: .2, gen: c => c.bar % 2 ? [] : stab(60, 76, [[0, 1], [3, 1.5, .6]], { max: 3 })(c) } } },
+];
+
+/* ---------------------------------------------------------------- HIP HOP */
+const HR = ["kick", "snare", "hats", "perc", "bass", "keys", "lead"];
+const HIPHOP = { id: "hiphop", name: "Hip hop", key: 0, keyName: "C minor", roles: HR, crash: "909.cr", prog: ["Cm9", "Fm9", "Abmaj7", "G7b9"], form: formOf(HR, "hiphop"), subs: [] };
+const BB_KICKS = ["x.......x.x.....", "x.....x...x.....", "x.......x.x....x", "x..x......x....."];
+const boombap = { id: "boombap", name: "Boom bap", where: "New York · early '90s", bpm: 90, swing: .6, palette: [[255, 220, 170], [230, 60, 50], [255, 150, 60]], duck: 0, delay: 1 / 4,
+  roll: { role: "snare" }, sweep: 260,
+  parts: { kick: { inst: "mpc.bd", label: "MPC KICK", vol: -2, gen: c => drum(BB_KICKS[c.bar % 4]) },
+    snare: { inst: "mpc.sd", label: "MPC SNARE", vol: -4, rev: .08, gen: c => drum(c.R() < .3 ? "....x..g....x..." : "....x.......x...") },
+    hats: { inst: "mpc.hh", label: "HATS", vol: -14, pan: .15, gen: Dg("x.o.x.ogx.o.x.o.") },
+    perc: { inst: "mpc.oh", label: "OPEN HAT", vol: -18, pan: .15, gen: c => c.bar % 2 ? drum("..............x.") : [] },
+    bass: { inst: "gm.upright", label: "UPRIGHT BASS", vol: -4, lp: 1100, gen: c => { const r = rootIn(c, 31), k = BB_KICKS[c.bar % 4], out = [];
+      for (let s = 0; s < 16; s++) if (k[s] === "x") out.push(nt(s, s === 0 ? r : s >= 10 ? r + 7 : r + 12, s === 0 ? 3 : 1.6, s === 0 ? .85 : .65)); return out; } },
+    keys: { inst: "sal.piano", label: "PIANO CHOPS", vol: -6, lp: 3600, rev: .14, gen: c => { const v = c.D.vk = voice(c.ch, 55, 74, c.D.vk, { rootless: true, max: 4 });
+      if (c.sec === "intro" || c.sec === "break") return [nt(0, v, 8, .6), nt(10, v, 5, .45)];
+      const out = [nt(0, v, 3, .7, { strum: .012 }), nt(3, v, 2, .5), nt(10, v, 4, .6)]; if (c.ch.q === "7b9") out.push(...[80, 79, 77, 75].map((n, i) => nt(12 + i, n, .9, .5))); return out; } },
+    lead: { inst: "gm.brass", label: "HORNS", vol: -11, rev: .25, gen: c => c.bar % 2 === 0 ? stab(60, 76, [[0, 1.6, .75]], { max: 3 })(c) : [] } } };
+HIPHOP.subs = [
+  boombap,
+  { id: "jazzhop", name: "Jazz hop", where: "New York · early '90s", bpm: 88, swing: .58, palette: [[255, 190, 110], [90, 150, 255], [255, 240, 210]], duck: 0, delay: 1 / 4,
+    roll: { role: "snare" }, sweep: 260,
+    parts: { kick: { inst: "mpc.bd", label: "KICK", vol: -3, gen: c => drum(["x.......x.......", "x......x..x....."][c.bar % 2]) },
+      snare: { inst: "mpc.sd", label: "SNARE", vol: -6, rev: .1, gen: Dg("....x.......x...") }, hats: { inst: "vc.hihat", label: "HI-HAT", vol: -15, pan: .2, gen: Dg("x.gox.g.x.gox.g.", null, { o: { v: .5, var: "open" }, x: { v: .55 }, g: { v: .25, var: "ghost" } }) },
+      perc: { inst: "vc.shaker", label: "SHAKER", vol: -19, pan: -.2, gen: Dg("o.u.o.u.o.u.o.u.", null, { o: { v: .4 }, u: { v: .28, var: "up" } }) },
+      bass: { inst: "gm.upright", label: "WALKING BASS", vol: -4, lp: 1200, gen: c => { const r = rootIn(c, 31), nx = rootIn(c, 31, 0, c.nx); return [nt(0, r, 3.5, .85), nt(4, r + 3, 3.5, .65), nt(8, r + 7, 3.5, .7), nt(12, nx + (nx > r ? -1 : 1), 3.5, .6)]; } },
+      keys: { inst: "gm.epiano", label: "RHODES", vol: -9, rev: .2, gen: stab(55, 72, [[0, 3], [6, 2, .5], [11, 3, .6]], { rootless: true, strum: .01 }) },
+      lead: { inst: "gm.mtrumpet", label: "MUTED TRUMPET", vol: -10, rev: .25, del: .15, gen: melody("dorian", 67, 82, [0, 3, 6, 10, 12], 31, { len: 2, answer: "rest" }) } } },
+  { id: "lofi", name: "Lo-fi hip hop", where: "the internet · 2010s", bpm: 80, swing: .58, palette: [[255, 170, 200], [140, 160, 255], [255, 230, 190]], duck: 0, delay: 1 / 4,
+    roll: { role: "snare" }, sweep: 220,
+    parts: { kick: { inst: "mpc.bd", label: "SOFT KICK", vol: -4, lp: 2500, gen: c => drum(["x.......x.x.....", "x......x..x....."][c.bar % 2]) },
+      snare: { inst: "mpc.sd", label: "LAZY SNARE", vol: -8, lp: 4000, rev: .12, gen: c => drum("....x.......x...").map(e => ({ ...e, s: e.s + .25 })) },
+      hats: { inst: "mpc.hh", label: "HATS", vol: -17, lp: 6000, gen: Dg("x.o.x.o.x.o.x.o.") }, perc: null,
+      bass: { inst: "gm.finger", label: "BASS", vol: -6, lp: 700, gen: lineBass(31, [[0, 0, 4, .75], [10, 7, 3, .55]]) },
+      keys: { inst: "sal.piano", label: "FELT PIANO", vol: -8, lp: 2200, rev: .2, gen: stab(55, 72, [[0, 6, .55], [8, 6, .45]], { rootless: true, strum: .03 }) },
+      lead: { inst: "gm.vibes", label: "VIBES", vol: -13, rev: .3, del: .25, gen: melody("penta", 72, 86, [2, 6, 11], 33, { len: 3 }) } } },
+  { id: "trap", name: "Trap", where: "Atlanta · 2000s", bpm: 70, swing: .5, palette: [[200, 60, 255], [255, 255, 255], [255, 50, 90]], duck: 0, delay: 3 / 16,
+    prog: ["Cm", "Ab", "Fm", "G"], roll: { role: "hats" },
+    parts: { kick: { inst: "808.bd", label: "808 KICK", vol: -4, gen: c => drum(["x......x..x.....", "x.........x..x.."][c.bar % 2]) },
+      snare: { inst: "808.cp", label: "CLAP", vol: -7, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hh", label: "HATS + ROLLS", vol: -15, pan: .1, gen: c => { const out = []; for (let s = 0; s < 16; s += 1) out.push({ s, v: s % 2 ? .4 : .55 });   // 16ths, then rolls in 32nds and triplets
+          const r = c.bar % 4; if (r === 1) for (let k = 0; k < 4; k++) out.push({ s: 6 + k * .5, v: .45 }); if (r === 3) for (let k = 0; k < 6; k++) out.push({ s: 12 + k * 2 / 3, v: .35 + k * .05 });
+          return out.filter(e => !(r === 3 && e.s >= 12 && e.s % 1 === 0)); } },
+      perc: { inst: "808.rim", label: "RIM", vol: -17, gen: Dg("......x.......x.") },
+      bass: { synth: "sub808", label: "808 BASS", vol: -3, gen: c => { const r = rootIn(c, 24); return [nt(0, r, 6, .9), nt(7, r, 2, .7), nt(10, r + (c.bar % 2 ? 12 : 7), 4, .8, { slide: true })]; } },
+      keys: { inst: "sal.piano", label: "DARK PIANO", vol: -9, rev: .3, gen: melody("minor", 72, 88, [0, 2, 4, 8, 10], 34, { len: 1.6 }) },
+      lead: { inst: "gm.flute", label: "FLUTE", vol: -12, rev: .25, del: .2, gen: c => c.bar % 2 ? [] : melody("penta", 74, 89, [0, 3, 6, 8], 35, { len: 2 })(c) } } },
+  { ...boombap, id: "screwed", name: "Chopped & screwed", where: "Houston · '90s (DJ Screw)", of: "boombap", rate: .72, bpm: Math.round(90 * .72), palette: [[150, 60, 255], [255, 60, 160], [60, 60, 180]] },
+];
+
+/* ---------------------------------------------------------------- BREAKS & BASS */
+const BR = ["kick", "snare", "hats", "perc", "bass", "chords", "lead"];
+const BREAKS = { id: "breaks", name: "Breaks & bass", key: 4, keyName: "E minor", roles: BR, crash: "909.cr", prog: ["Em9", "Cmaj7", "Am9", "Bm7"], form: formOf(BR), subs: [] };
+const BREAK_K = ["x.x.......x.....", "x.x.......xx...."], BREAK_S = ["....x..g.g..x..g", "....x..g.x..x.g."];
+BREAKS.subs = [
+  { id: "breakbeat", name: "Breakbeat", where: "UK · '90s", bpm: 130, swing: .52, palette: [[255, 180, 60], [255, 255, 255], [60, 200, 255]], duck: .15, delay: 3 / 16,
+    prog: ["Em7"], roll: { role: "snare" },
+    parts: { kick: { inst: "vc.bombo", label: "KICK", vol: -2, gen: c => drum(BREAK_K[c.bar % 2]) }, snare: { inst: "vc.timbal", label: "SNARE", vol: -6, rev: .1, gen: c => drum(BREAK_S[c.bar % 2], { g: { v: .3 } }) },
+      hats: { inst: "vc.hihat", label: "HI-HAT", vol: -14, pan: .2, gen: Dg("x.x.x.x.x.x.x.xO", "xxxxxxxxxxxxxxxO", { O: { v: .6, var: "open" }, x: { v: .45 } }) },
+      perc: { inst: "vc.tamb", label: "TAMBOURINE", vol: -17, gen: Dg("....x.......x...") },
+      bass: { inst: "gm.sb2", label: "BASS", vol: -5, lp: 600, gen: lineBass(28, [[0, 0, 1.5, .9], [3, 0, .7, .6], [10, 0, 1.5, .8], [14, 3, .7, .6]]) },
+      chords: { inst: "gm.organ", label: "ORGAN STAB", vol: -13, rev: .15, gen: stab(55, 69, [[6, .7], [14, .7, .55]]) },
+      lead: { inst: "gm.brass", label: "HORN HIT", vol: -12, rev: .25, gen: c => c.bar % 4 ? [] : stab(60, 76, [[0, 1.2, .8]], { max: 3 })(c) } } },
+  { id: "ukg", name: "UK garage", where: "London · late '90s", bpm: 132, swing: .6, palette: [[120, 255, 200], [255, 120, 220], [255, 255, 255]], duck: .2, delay: 3 / 16,
+    prog: ["Em9", "Am9"], roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "2-STEP KICK", vol: -3, gen: c => drum(["x.........x.....", "x.......x....x.."][c.bar % 2]) }, snare: { inst: "909.cp", label: "CLAP", vol: -9, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "SHUFFLED HATS", vol: -15, pan: .15, gen: Dg("..x.gx.x..x.gx.x", null, { x: { v: .5 }, g: { v: .3 } }) },
+      perc: { inst: "909.rim", label: "RIM", vol: -15, pan: -.2, gen: Dg("...x....x..x....") },
+      bass: { inst: "gm.sb1", label: "BUBBLE BASS", vol: -5, lp: 700, gen: lineBass(28, [[2, 0, .8, .8], [5, 12, .5, .6], [7, 0, .8, .7], [11, 7, .6, .65], [14, 0, .8, .7]]) },
+      chords: { inst: "gm.organ", label: "M1 ORGAN", vol: -12, rev: .12, gen: stab(57, 72, [[3, .6], [6, .6, .55], [11, .7]], { rootless: true }) },
+      lead: { inst: "gm.oohs", label: "VOCAL CHOPS", vol: -12, rev: .25, del: .2, gen: melody("minor", 67, 81, [2, 7, 10, 14], 41, { len: .7 }) } } },
+  { id: "jungle", name: "Jungle", where: "London · early '90s", bpm: 165, swing: .5, palette: [[60, 255, 120], [255, 200, 40], [255, 60, 60]], duck: .1, delay: 3 / 16, fb: .5,
+    prog: ["Em"], roll: { role: "snare" },
+    parts: { kick: { inst: "vc.bombo", label: "KICK", vol: -3, gen: c => drum(["x.x.......x.....", "x.........xx...."][c.bar % 2]) },
+      snare: { inst: "vc.timbal", label: "CHOPPED SNARE", vol: -6, rev: .08, gen: c => drum(["....x..g.x..x..g", "....x.gx..x.x.gx"][c.bar % 2], { g: { v: .3 } }) },
+      hats: { inst: "vc.hihat", label: "RIDE HATS", vol: -16, pan: .2, gen: Dg("x.x.x.x.x.x.x.x.", "xgxgxgxgxgxgxgxg", { x: { v: .45 }, g: { v: .25, var: "ghost" } }) },
+      perc: null,
+      bass: { synth: "sub808", label: "SUB BASS", vol: -4, gen: c => { const r = rootIn(c, 28); return [nt(0, r, 6, .85), nt(10, r + (c.bar % 2 ? 3 : -2), 5, .75, { slide: true })]; } },
+      chords: { inst: "gm.strings", label: "STRINGS", vol: -14, rev: .4, gen: padP(55, 74) }, lead: null } },
+  { id: "liquid", name: "Liquid drum & bass", where: "UK · 2000s", bpm: 174, swing: .5, palette: [[80, 200, 255], [190, 130, 255], [255, 220, 160]], duck: .2, delay: 3 / 16, fb: .45,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "KICK", vol: -3, lp: 3000, gen: Dg("x.........x.....", "x.........x..x..") }, snare: { inst: "vc.timbal", label: "SNARE", vol: -6, rev: .14, gen: Dg("....x.......x...") },
+      hats: { inst: "vc.hihat", label: "HATS", vol: -16, pan: .2, gen: Dg("x.xgx.xgx.xgx.xg", null, { x: { v: .45 }, g: { v: .25, var: "ghost" } }) },
+      perc: { inst: "vc.shaker", label: "SHAKER", vol: -19, pan: -.2, gen: Dg("ogugogugogugogug", null, { o: { v: .4 }, g: { v: .22 }, u: { v: .3, var: "up" } }) },
+      bass: { synth: "reese", label: "REESE BASS", vol: -6, cut: 600, gen: lineBass(28, [[0, 0, 7, .85], [8, 0, 3, .7], [12, 3, 4, .7]]) },
+      chords: { inst: "gm.epiano", label: "RHODES", vol: -10, rev: .3, gen: stab(55, 74, [[0, 6, .6], [8, 6, .5]], { rootless: true }) },
+      lead: { inst: "gm.halo", label: "PAD", vol: -14, rev: .45, gen: padP(60, 79, .8) } } },
+  { id: "dubstep", name: "Dubstep", where: "Croydon · 2000s", bpm: 140, swing: .5, palette: [[150, 255, 60], [120, 60, 255], [255, 255, 255]], duck: .25, delay: 3 / 16,
+    prog: ["Em"], roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "KICK", vol: -2, gen: c => drum(["x.........x.....", "x.......x....x.."][c.bar % 2]) }, snare: { inst: "909.sd", label: "HALF-TIME SNARE", vol: -5, rev: .2, gen: Dg("........x.......") },
+      hats: { inst: "808.hh", label: "HATS", vol: -18, pan: .15, gen: Dg("x...x...x...x.x.") }, perc: { inst: "909.rim", label: "RIM", vol: -16, gen: Dg("......x.......x.") },
+      bass: { synth: "wobble", label: "WOBBLE BASS", vol: -6, gen: c => { const r = rootIn(c, 28); return [nt(0, r, 7.5, .9, { wob: 2 }), nt(8, c.bar % 2 ? r + 3 : r, 7.5, .85, { wob: c.bar % 2 ? 1 : 4 })]; } },
+      chords: { inst: "gm.halo", label: "DARK PAD", vol: -15, rev: .4, gen: padP(52, 71) }, lead: null } },
+];
+
+/* ---------------------------------------------------------------- DEMBOW */
+const DBR = ["kick", "snare", "hats", "perc", "bass", "chords", "lead"];
+const DEMBOW = { id: "dembow", name: "Dembow", key: 7, keyName: "G minor", roles: DBR, crash: "909.cr", prog: ["Gm", "Eb", "Bb", "F"], form: formOf(DBR), subs: [] };
+const DEMBOW_SN = "...x..x....x..x.";                                    // the dembow: boom … ch-boom … chick
+DEMBOW.subs = [
+  { id: "dancehall", name: "Dancehall", where: "Jamaica · 1990 (\"Dem Bow\")", bpm: 98, swing: .52, palette: [[255, 220, 40], [40, 200, 90], [255, 70, 50]], duck: .1, delay: 3 / 16,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "808.bd", label: "KICK", vol: -3, gen: Dg("x.......x.......", "x...x...x...x...") }, snare: { inst: "808.sd", label: "SNARE", vol: -8, gen: Dg(DEMBOW_SN) },
+      hats: { inst: "808.hhx", label: "HATS", vol: -16, gen: Dg("x.x.x.x.x.x.x.x.") }, perc: { inst: "vc.wood", label: "WOODBLOCK", vol: -18, pan: .3, gen: Dg("..x...x...x...x.") },
+      bass: { inst: "gm.sb1", label: "BASS", vol: -4, lp: 700, gen: lineBass(31, [[0, 0, 2, .9], [3, 0, .7, .6], [8, 0, 2, .8], [11, 7, .7, .6], [14, 5, .7, .55]]) },
+      chords: { inst: "gm.organ", label: "SKANK ORGAN", vol: -14, gen: stab(57, 70, [[2, .5], [6, .5], [10, .5], [14, .5]], { max: 3 }) },
+      lead: { inst: "gm.steel", label: "STEEL DRUM", vol: -13, rev: .2, del: .2, gen: melody("minor", 67, 84, [0, 3, 6, 10], 51, { len: 1 }) } } },
+  { id: "reggaeton", name: "Reggaeton", where: "Puerto Rico · 2000s", bpm: 92, swing: .5, palette: [[255, 60, 140], [255, 200, 60], [80, 200, 255]], duck: .15, delay: 3 / 16,
+    roll: { role: "perc", var: "low" },
+    parts: { kick: { inst: "808.bd", label: "KICK", vol: -2, gen: fourFloor }, snare: { inst: "808.sd", label: "DEMBOW SNARE", vol: -6, gen: Dg(DEMBOW_SN, "...x..x.x..x..x.") },
+      hats: { inst: "808.hhx", label: "HATS", vol: -16, pan: .15, gen: Dg("x.x.x.x.x.x.x.x.", "x.xxx.x.x.xxx.x.") },
+      perc: { inst: "808.toms", label: "TIMBAL FILLS", vol: -14, gen: c => c.bib % 4 === 3 ? drum("..........x.xml", { m: { v: .7, var: "mid" }, l: { v: .75, var: "low" } }) : [] },
+      bass: { synth: "sub808", label: "808 BASS", vol: -4, gen: lineBass(31, [[0, 0, 2.5, .9], [3, 0, 1, .6], [6, 0, 2, .75], [11, 0, 1, .6], [14, 7, 1.5, .7, { slide: true }]]) },
+      chords: { inst: "sal.piano", label: "PIANO", vol: -10, rev: .2, gen: stab(55, 72, [[0, 1.5], [3, 1, .55], [6, 1.5, .6], [11, 1, .55]]) },
+      lead: { inst: "gm.saw", label: "SYNTH PLUCK", vol: -15, lp: 3000, del: .3, gen: melody("minor", 67, 84, [0, 3, 6, 8, 11, 14], 52, { len: .5 }) } } },
+  { id: "moombahton", name: "Moombahton", where: "Washington, D.C. · 2009", bpm: 108, swing: .5, palette: [[255, 120, 40], [80, 255, 160], [255, 255, 255]], duck: .3, delay: 3 / 16,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "909.bd", label: "KICK", vol: -1, gen: fourFloor }, snare: { inst: "909.cp", label: "DEMBOW CLAP", vol: -7, rev: .1, gen: Dg(DEMBOW_SN) },
+      hats: { inst: "909.hhx", label: "HATS", vol: -15, pan: .15, gen: Dg("..O...O...O...O.", "xgOgxgOgxgOgxgOg", OPEN) },
+      perc: { inst: "vc.bongo", label: "BONGOS", vol: -13, pan: -.25, gen: Dg("x.g.x.L.x.g.x.L.", null, { x: { v: .7 }, g: { v: .35, var: "mute" }, L: { v: .7, var: "low" } }) },
+      bass: { synth: "reese", label: "THICK BASS", vol: -5, cut: 900, gen: lineBass(31, [[0, 0, 3, .9], [6, 0, 2, .75], [10, 12, 1.5, .7], [13, 7, 2, .7]]) },
+      chords: null,
+      lead: { inst: "gm.sbrass", label: "RAVE STAB", vol: -12, rev: .2, gen: c => c.bar % 2 ? [] : stab(60, 74, [[0, .8, .8], [3, .8, .6], [6, 1.2, .7]], { max: 3 })(c) } } },
+  { id: "dominican", name: "Dominican dembow", where: "Dominican Republic · 2000s", bpm: 122, swing: .5, palette: [[60, 120, 255], [255, 50, 70], [255, 255, 255]], duck: .2, delay: 3 / 16,
+    roll: { role: "snare" },
+    parts: { kick: { inst: "808.bd", label: "KICK", vol: -2, gen: fourFloor }, snare: { inst: "808.cp", label: "DEMBOW CLAP", vol: -6, gen: Dg(DEMBOW_SN, "...x..x.x.xx..x.") },
+      hats: { inst: "808.hhx", label: "HATS", vol: -15, gen: Dg("xxx.xxx.xxx.xxx.") }, perc: { inst: "vc.guiro", label: "GÜIRA", vol: -22, hp: 1600, maxLen: .8, pan: .3, gen: Dg("s.ss s.ss s.ss s.ss".replace(/ /g, ""), null, { s: { v: .5 } }) },
+      bass: { synth: "sub808", label: "808 BASS", vol: -3, gen: lineBass(31, [[0, 0, 2, .9], [6, 0, 1, .7], [8, 0, 2, .85], [14, 7, 1, .7]]) },
+      chords: null,
+      lead: { inst: "gm.square", label: "SYNTH HOOK", vol: -14, del: .2, gen: melody("minor", 67, 82, [0, 2, 3, 6, 8, 10, 11], 54, { len: .4 }) } } },
+];
+
+/* ---------------------------------------------------------------- ELECTRO */
+const ER = ["kick", "clap", "hats", "perc", "bass", "chords", "lead"];
+const ELECTRO = { id: "electro", name: "Electro", key: 6, keyName: "F♯ minor", roles: ER, crash: "909.cr", prog: ["F#m"], form: formOf(ER), subs: [] };
+const ELECTRO_K = ["x.....x.x.......", "x.....x...x....."];
+ELECTRO.subs = [
+  { id: "electro", name: "Electro", where: "Detroit · New York · 1982", bpm: 127, swing: .5, palette: [[60, 255, 230], [255, 60, 220], [255, 255, 255]], duck: .1, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: c => drum(ELECTRO_K[c.bar % 2]) }, clap: { inst: "808.cp", label: "808 CLAP", vol: -7, rev: .12, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hhx", label: "808 HATS", vol: -15, gen: Dg("xxxxxxxxxxxxxxOx", null, { x: { v: .4 }, O: { v: .5, var: "open" } }) },
+      perc: { inst: "808.toms", label: "808 TOMS", vol: -15, gen: c => c.bib % 2 ? drum("..........x.m.l.", { m: { v: .7, var: "mid" }, l: { v: .7, var: "low" } }) : [] },
+      bass: { inst: "gm.sb2", label: "SYNTH BASS", vol: -5, lp: 1200, gen: lineBass(30, [[0, 0, .8, .9], [3, 0, .5, .6], [6, 12, .5, .7], [8, 0, .8, .8], [11, 10, .5, .6], [14, 7, .5, .6]]) },
+      chords: { inst: "gm.sstrings", label: "SYNTH STABS", vol: -13, rev: .25, gen: stab(57, 72, [[0, 1], [6, 1, .55]]) },
+      lead: { inst: "gm.square", label: "ROBOT RIFF", vol: -13, del: .2, gen: melody("minor", 66, 82, [0, 2, 3, 8, 10], 61, { len: .6 }) } } },
+  { id: "electrofunk", name: "Electro-funk", where: "New York · early '80s", bpm: 115, swing: .55, palette: [[255, 170, 40], [255, 60, 120], [120, 220, 255]], duck: 0, delay: 1 / 4,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: c => drum(ELECTRO_K[c.bar % 2]) }, clap: { inst: "808.cp", label: "HANDCLAPS", vol: -8, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hhx", label: "HATS", vol: -15, gen: Dg("x.x.x.xOx.x.x.xO", null, { x: { v: .45 }, O: { v: .5, var: "open" } }) },
+      perc: { inst: "808.cb", label: "COWBELL", vol: -18, gen: Dg("......x.......x.") },
+      bass: { inst: "gm.slap", label: "SLAP BASS", vol: -4, lp: 1800, gen: lineBass(30, [[0, 0, .7, .9], [2, 12, .4, .65], [3, 0, .4, .55], [7, 10, .5, .7], [8, 0, .7, .85], [11, 12, .4, .65], [14, 7, .5, .65]]) },
+      chords: { inst: "gm.clav", label: "CLAV", vol: -12, pan: .25, gen: stab(57, 72, [[2, .4], [5, .4, .5], [7, .4], [10, .4, .55], [13, .4]], { max: 3 }) },
+      lead: { inst: "gm.sbrass", label: "SYNTH BRASS", vol: -12, rev: .2, gen: c => c.bar % 2 ? [] : stab(60, 74, [[0, 1.5, .75], [6, 1, .6]], { max: 3 })(c) } } },
+  { id: "miami", name: "Miami bass", where: "Miami · mid-'80s", bpm: 130, swing: .5, palette: [[255, 80, 200], [60, 200, 255], [255, 230, 60]], duck: 0, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "808.boom", label: "808 BOOM", vol: -3, gen: c => drum(ELECTRO_K[c.bar % 2]) }, clap: { inst: "808.cp", label: "CLAP", vol: -7, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hhx", label: "FAST HATS", vol: -16, gen: Dg("xxxxxxxxxxxxxxxx", null, { x: { v: .4 } }) },
+      perc: { inst: "808.cb", label: "COWBELL", vol: -18, gen: Dg("..x.......x.....") },
+      bass: { synth: "sub808", label: "808 SUB", vol: -4, gen: c => { const r = rootIn(c, 30); return [nt(0, r, 5, .9), nt(6, r, 2, .7), nt(8, r + 3, 4, .75, { slide: true })]; } },
+      chords: null,
+      lead: { inst: "gm.orch", label: "ORCHESTRA HIT", vol: -12, rev: .25, gen: c => c.bar % 2 ? [] : stab(54, 66, [[0, .6, .8], [3, .6, .7]], { max: 3 })(c) } } },
+  { id: "electroclash", name: "Electroclash", where: "Berlin · New York · ~2000", bpm: 128, swing: .5, palette: [[255, 40, 80], [255, 255, 255], [40, 40, 60]], duck: .15, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "linn.bd", label: "LINN KICK", vol: -2, drive: 1.5, gen: fourFloor }, clap: { inst: "linn.cp", label: "LINN CLAP", vol: -8, drive: 1, gen: Dg("....x.......x...") },
+      hats: { inst: "linn.hhx", label: "HATS", vol: -15, gen: Dg("x.O.x.O.x.O.x.O.", null, OPEN) }, perc: { inst: "linn.cb", label: "COWBELL", vol: -19, gen: Dg("......x.........") },
+      bass: { inst: "gm.sb2", label: "DIRTY SYNTH BASS", vol: -6, lp: 1100, drive: 2, gen: c => { const r = rootIn(c, 30); return [0, 2, 4, 6, 8, 10, 12, 14].map(s => nt(s, s % 4 === 2 ? r + 12 : r, .8, s % 4 ? .6 : .85)); } },
+      chords: null,
+      lead: { inst: "gm.saw", label: "SAW RIFF", vol: -14, drive: 1, del: .2, gen: melody("minor", 66, 81, [0, 3, 6, 8, 12], 63, { len: .8 }) } } },
+  { id: "electrohouse", name: "Electro house", where: "2000s", bpm: 128, swing: .5, palette: [[60, 160, 255], [255, 255, 255], [255, 60, 200]], duck: .5, delay: 3 / 16,
+    roll: { role: "clap" },
+    parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -1, gen: fourFloor }, clap: { inst: "909.cp", label: "CLAP", vol: -8, rev: .1, gen: Dg("....x.......x...") },
+      hats: { inst: "909.hhx", label: "HATS", vol: -15, pan: .15, gen: Dg("..O...O...O...O.", "xgOgxgOgxgOgxgOg", OPEN) },
+      perc: { inst: "909.rim", label: "RIM", vol: -17, gen: Dg("...x......x.....") },
+      bass: { synth: "reese", label: "SAW BASS", vol: -5, cut: 1400, gen: lineBass(30, [[2, 0, 1.5, .85], [6, 0, 1.5, .8], [10, 0, 1.5, .85], [13, 12, 1, .7], [14, 0, 1.5, .8]]) },
+      chords: { inst: "gm.saw", label: "SUPERSAW STAB", vol: -13, rev: .2, gen: stab(57, 74, [[0, .7], [3, .7, .6], [6, .7], [10, .7, .6]]) },
+      lead: null } },
+];
+
+FAMILIES.push(TECHNO, DISCO, HIPHOP, BREAKS, DEMBOW, ELECTRO);
+for (const F of FAMILIES) for (const S of F.subs) S.fam = F;
+
+/* =====================================================================
+   THE DECKS AND THE DJ · one clock, two decks. Each deck plays a subgenre through its own EQ, filters and fader.
+   Pick another style and the mix starts on the next bar, by itself, the way a DJ would do it:
+   - BLEND (close tempos, same family): beat-matched; the new track comes in with its lows cut and highs down, the fader rides
+     up over two bars; half-way through, on the downbeat, the basses are swapped; then the old track's highs and fader go.
+     The tempo is ridden from one track's to the other's over the mix.
+   - FILTER MIX (into or out of ambient): the new track's high-pass opens while the old track's low-pass closes.
+   - PITCH RIDE (cumbia ↔ rebajada): the same record, slowed down (or back up) on the pitch fader, as the Monterrey
+     sonideros did; tempo and pitch move together.
+   - CUT ON THE ONE (tempos too far apart, or another family): the new track drops on the downbeat; the old one has its
+     lows pulled and fades within the bar.
+   The song never restarts: the incoming record joins at the bar the outgoing one is on (same section, same bar), so the
+   structure runs straight through the mix; a mix is timed to finish by the next drop, and the build, the beat of silence
+   and the drop are played by the incoming record.
+   ===================================================================== */
+let FAM = FAMILIES[0], seed = 1, decks = [], cur = null, mix = null, mixReq = null, pending = null, deckIds = 0;
+let clockBar = 0, step = 0, nextT = 0, timer = null, playing = false, bpm = 92;
+const TL = [], HITS = [], MARKS = [], MIXLOG = [];
+function layout(form) {
+  const out = [];
+  for (const [type, n, spec] of form) {
+    const toks = spec.split(/\s+/).filter(Boolean).map(t => { const m = t.match(/^(\w+)([<>])?(\d+)?$/); return { id: m[1], op: m[2], k: +m[3] }; });
+    for (let b = 0; b < n; b++) out.push({ sec: type, bib: b, n, last: b === n - 1, act: new Set(toks.filter(t => !t.op || (t.op === ">" ? b >= t.k : b < t.k)).map(t => t.id)) });
+  }
+  return out;
+}
+const progFor = (S, sec) => (S.progs?.[sec] || S.prog || S.fam.progs?.[sec] || S.fam.prog).map(chord);
+const stepDur = () => 60 / bpm / 4;
+const secStart = (D, sec) => Math.max(0, D.bars.findIndex(b => b.sec === sec));
+
+/* ---------- a deck ---------- */
+function newDeck(S, startSec = "groove") {
+  const D = { id: ++deckIds, sub: S, fam: S.fam, bars: layout(S.fam.form), pass: 0, rate: S.rate || 1, mem: { seed: hashStr(S.id + ":" + seed) }, bus: makeDeckBus(), parts: {} };
+  D.pos = secStart(D, startSec);
+  for (const role of S.fam.roles) { const def = S.parts[role]; if (!def) continue; const P = { ...def, role }; P.bufs = def.inst ? bufsSync(def.inst) : null; P.ch = makeChannel(P, D.bus); D.parts[role] = P; }
+  applyMutes(D);
+  return D;
+}
+function freeDeck(D, t) { for (const P of Object.values(D.parts)) disposeChannel(P.ch, t); setTimeout(() => { try { D.bus.fader.disconnect(); } catch (e) {} }, 1800); decks = decks.filter(x => x !== D); }
+const loaded = new Map();                                  // inst key → bufs (filled by loadSub)
+function bufsSync(k) { return loaded.get(k) || null; }
+async function loadSub(S, onProgress) {
+  await loadAll(subUrls(S).concat(instUrls("vc.cresc"), instUrls(S.fam.crash)), onProgress);
+  for (const P of Object.values(S.parts)) if (P?.inst && !loaded.has(P.inst)) loaded.set(P.inst, await bufsOf(P.inst));
+  for (const k of ["vc.cresc", S.fam.crash]) if (!loaded.has(k)) loaded.set(k, await bufsOf(k));
+}
+
+/* ---------- writing one bar of a deck ---------- */
+function genBar(D) {
+  const b = D.bars[D.pos], S = D.sub, prog = progFor(S, b.sec), R = mulberry32(hashStr(`${S.id}:${seed}:${D.pass}:${D.pos}`)), ev = [];
+  const nb = D.bars[(D.pos + 1) % D.bars.length], np = progFor(S, nb.sec);
+  const c = { sec: b.sec, bib: b.bib, n: b.n, last: b.last, bar: D.pos, pass: D.pass, R, ch: prog[b.bib % prog.length], nx: np[nb.bib % np.length], D: D.mem, key: S.fam.key };
+  const lead = D === (mix ? mix.B : cur);                  // the record that owns the build, the silence and the drop
+  S.fam.roles.forEach((role, ri) => {
+    const P = D.parts[role]; if (!P) return;
+    let list = [];
+    if (b.act.has(role)) { try { list = P.gen(c) || []; } catch (e) { console.warn(role, e); } }
+    if (b.sec === "build" && lead && S.roll?.role === role) list = roll(b, S.roll.var);
+    for (const e of list) {
+      if (b.sec === "build" && b.last && e.s >= 12) continue;                         // the beat of silence (both records)
+      ev.push({ ...e, role, p: ri, v: clamp(e.v * (1 + (R() - .5) * .08), 0, 1.3), dt: (R() - .5) * (/conga|guiro|shaker|bongo|cajon/.test(P.inst || "") ? .008 : .004) });
+    }
+  });
+  if (S.parts.bass?.synth === "acid") D.acidCut = 380 + 1600 * (.5 - .5 * Math.cos(TAU * ((D.pos % 16) / 16)));   // the cutoff knob, turned slowly
+  return { b, ev, ch: c.ch };
+}
+function roll(b, v) {
+  const left = b.n - b.bib, out = [], div = left >= 4 ? 4 : left === 3 ? 2 : 1;
+  for (let s = 0; s < 16; s += div) out.push({ s, v: .3 + .55 * (1 - left / Math.max(4, b.n)) + s / 80, var: v });
+  if (left === 1) for (let s = 8.5; s < 12; s += 1) out.push({ s, v: .8 + s / 60, var: v });
+  return out;
+}
+function advance(D) {
+  D.pos++; if (D.pos >= D.bars.length) { D.pos = secStart(D, "groove"); D.pass++; }
+}
+
+/* ---------- the clock ---------- */
+let curBars = [];
+function onBar(t) {
+  if (mixReq && !mix) { const S = mixReq; mixReq = null; startMix(S, t); }
+  const sd = stepDur(), entries = [];
+  curBars = decks.map(D => { const B = genBar(D); entries.push({ id: D.id, sub: D.sub, sec: B.b.sec, bib: B.b.bib, n: B.b.n, ev: B.ev, ch: B.ch }); return { D, B }; });
+  TL.push({ t0: t, sd, clockBar, decks: entries }); while (TL.length > 6) TL.shift();
+  const L = mix ? mix.B : cur, lb = curBars.find(x => x.D === L); if (L && lb) soloEvents(L, lb.B.b, t, sd);
+}
+function soloEvents(D, b, t, sd) {                          // build → silence → drop, on a deck playing alone
+  if (b.sec === "build" && b.bib === 0) {
+    const tSil = t + (b.n * 16 - 4) * sd;
+    M.hp.frequency.cancelScheduledValues(t); M.hp.frequency.setValueAtTime(20, t); M.hp.frequency.exponentialRampToValueAtTime(D.sub.sweep || 650, tSil);
+    const Bc = loaded.get("vc.cresc"); if (Bc?.main.length) { const buf = Bc.main[0], st = Math.max(t, tSil - Math.min(buf.duration, 2.4));
+      const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = buf; gn.gain.value = .3 * (buf._n || 1); src.connect(gn); gn.connect(D.bus.sum); src.start(Math.max(st, ctx.currentTime)); src.stop(tSil + .01); }
+  }
+  if (b.sec === "build" && b.last) {
+    const tSil = t + 12 * sd; M.pre.gain.cancelScheduledValues(tSil - .02); M.pre.gain.setValueAtTime(1, tSil - .012); M.pre.gain.linearRampToValueAtTime(0, tSil);
+    MARKS.push({ t: tSil, type: "silence", end: tSil + 4 * sd });
+  }
+  const prev = D.bars[D.pos - 1];
+  if (b.sec === "drop" && b.bib === 0 && prev?.sec === "build") {
+    M.pre.gain.cancelScheduledValues(t - .001); M.pre.gain.setValueAtTime(0, t - .001); M.pre.gain.setValueAtTime(1, t);
+    M.hp.frequency.cancelScheduledValues(t); M.hp.frequency.setValueAtTime(20, t);
+    const Bc = loaded.get(D.fam.crash); if (Bc?.main.length) { const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = Bc.main[0]; gn.gain.value = .5 * (Bc.main[0]._n || 1); src.connect(gn); gn.connect(D.bus.drums); src.start(t); }
+    MARKS.push({ t, type: "drop" });
+  }
+}
+function scheduleStep(t) {
+  if (step === 0) onBar(t);
+  if (mix) mixStep(t);
+  const sd = stepDur();
+  for (const { D, B } of curBars) {
+    const sw = step % 2 === 1 ? (D.sub.swing - .5) * 2 * sd : 0;
+    for (const e of B.ev) {
+      if (Math.floor(e.s) !== step) continue;
+      const P = D.parts[e.role]; if (!P) continue;
+      const tt = Math.max(ctx.currentTime, t + sw + (e.s - step) * sd + (e.dt || 0));
+      playPart(D, P, e, tt, sd);
+      HITS.push({ t: tt, p: e.p, s: e.s, v: e.v, deck: D.id });
+    }
+  }
+  if (HITS.length > 500) HITS.splice(0, HITS.length - 500);
+  if (step % 4 === 0 && !mix) for (const D of decks) eq(D, neutral(), t, 4 * sd);
+  step++;
+  if (step >= 16) { step = 0; clockBar++; for (const D of decks) advance(D); }
+}
+function scheduler() { while (nextT < ctx.currentTime + .12) { const sd = stepDur(); scheduleStep(nextT); nextT += sd; } }
+
+/* ---------- the DJ ---------- */
+function mixKind(A, B) {
+  if (A.fam !== B.fam) return "cut";
+  if (A.of === B.id || B.of === A.id) return "ride";
+  if (Math.abs(A.bpm - B.bpm) / Math.max(A.bpm, B.bpm) > .09) return "cut";
+  if (A.mix === "filter" || B.mix === "filter") return "filter";
+  return "blend";
+}
+function requestSub(S) {
+  if (!ctx || !cur) return;
+  if (S === cur.sub && !mix) return;
+  if (mix) { pending = S; ui(); return; }
+  const go = () => { mixReq = S; ui(); };
+  if (S.fam !== cur.fam || subUrls(S).some(u => !bufCache.has(u))) { status(`loading ${S.name.toLowerCase()}…`); loadSub(S).then(() => { status(""); go(); }); } else loadSub(S).then(go);
+}
+function startMix(S, t) {
+  const A = cur, kind = mixKind(A.sub, S), sd = stepDur();
+  let toDrop = 0; for (let i = A.pos; toDrop < A.bars.length; i = (i + 1) % A.bars.length, toDrop++) if (A.bars[i].sec === "drop" && A.bars[i].bib === 0) break;
+  const room = toDrop > 0 ? Math.min(8, toDrop) : 8;                                  // finish the mix by the next drop
+  if (kind === "ride") {                                    // the same record on the pitch fader
+    mix = { kind, A, B: A, start: clockBar, len: 2, fromBpm: bpm, toBpm: S.bpm, fromRate: A.rate, toRate: S.rate || 1, to: S };
+    A.sub = S; FAM = S.fam;
+  } else {
+    const B = newDeck(S); B.pos = joinAt(A, B); B.pass = A.pass; decks.push(B);       // the new record joins the song where it is
+    mix = { kind, A, B, start: clockBar, len: kind === "cut" ? 1 : room, fromBpm: bpm, toBpm: S.bpm };
+    if (kind === "cut") bpm = S.bpm;
+    eq(B, mixState(kind, "in", 0), t, .005);
+  }
+  MIXLOG.push({ t0: t, t1: t + mix.len * 16 * stepDur(), kind, from: A.id, to: mix.B.id, fromSub: A.sub, toSub: S }); if (MIXLOG.length > 8) MIXLOG.shift();
+  setDelayTime(S); save(); ui();
+}
+function joinAt(A, B) {                                   // same section, same bar (or the nearest thing in another family's form)
+  const a = A.bars[A.pos], i = B.bars.findIndex(b => b.sec === a.sec && b.bib === a.bib); if (i >= 0) return i;
+  const j = B.bars.findIndex(b => b.sec === a.sec); if (j >= 0) return Math.min(j + Math.min(a.bib, B.bars[j].n - 1), B.bars.length - 1);
+  return secStart(B, "groove");
+}
+const smooth = x => x * x * (3 - 2 * x);
+function mixStep(t) {
+  const u = clamp((clockBar - mix.start + step / 16) / mix.len), sd = stepDur();
+  if (mix.kind !== "cut") bpm = lerp(mix.fromBpm, mix.toBpm, smooth(u));
+  if (mix.kind === "ride") mix.A.rate = lerp(mix.fromRate, mix.toRate, smooth(u));
+  if (mix.kind !== "ride" && step % 4 === 0) {
+    const du = 4 / 16 / mix.len;
+    eqRamp(mix.B, mixState(mix.kind, "in", u), mixState(mix.kind, "in", Math.min(1, u + du)), t, 4 * sd);
+    eqRamp(mix.A, mixState(mix.kind, "out", u), mixState(mix.kind, "out", Math.min(1, u + du)), t, 4 * sd);
+  }
+  if (clockBar - mix.start >= mix.len - 1 && step === 15) endMix(t + sd);
+}
+function endMix(t) {
+  const m = mix; mix = null;
+  if (m.kind !== "ride") { freeDeck(m.A, t + .05); cur = m.B; FAM = cur.fam; eq(cur, neutral(), t, .05); }
+  bpm = cur.sub.bpm; cur.rate = cur.sub.rate || 1;
+  if (pending) { const p = pending; pending = null; if (p !== cur.sub) requestSub(p); }
+  ui();
+}
+const neutral = () => ({ g: 1, lo: 0, hi: 0, hp: 20, lp: 20000 });
+function mixState(kind, side, u) {                          // the EQ and fader positions of a deck at mix progress u
+  const s = neutral();
+  if (kind === "blend") {
+    if (side === "in") { s.g = Math.sin(Math.PI / 2 * clamp(u / .25)) * (u < .5 ? .85 : lerp(.85, 1, (u - .5) * 2)); s.lo = u < .5 ? -30 : 0; s.hi = lerp(-8, 0, clamp(u * 2)); }
+    else { s.g = u < .5 ? lerp(1, .85, clamp(u * 4)) : .85 * Math.cos(Math.PI / 2 * clamp((u - .5) * 2)); s.lo = u < .5 ? 0 : -30; s.hi = u < .5 ? 0 : lerp(0, -12, (u - .5) * 2); }
+  } else if (kind === "filter") {
+    if (side === "in") { s.g = Math.sin(Math.PI / 2 * clamp(u * 1.5)); s.hp = 20 * Math.pow(50, 1 - clamp(u * 1.6)); }
+    else { s.lp = 18000 * Math.pow(.02, clamp((u - .25) / .75)); s.g = Math.cos(Math.PI / 2 * clamp((u - .3) / .7)); }
+  } else if (kind === "cut") {
+    if (side === "out") { s.lo = -30; s.g = Math.cos(Math.PI / 2 * clamp(u)); s.hp = 20 + 380 * clamp(u); }
+  }
+  return s;
+}
+function eq(D, s, t, dur) { eqRamp(D, s, s, t, dur); }
+function eqRamp(D, a, b, t, dur) {
+  const B = D.bus, r = (p, va, vb, exp) => { p.cancelScheduledValues(t); p.setValueAtTime(va, t); exp ? p.exponentialRampToValueAtTime(Math.max(1, vb), t + dur) : p.linearRampToValueAtTime(vb, t + dur); };
+  r(B.fader.gain, a.g, b.g); r(B.lo.gain, a.lo, b.lo); r(B.hi.gain, a.hi, b.hi); r(B.hpf.frequency, a.hp, b.hp, true); r(B.lpf.frequency, a.lp, b.lp, true);
+}
+function setDelayTime(S) { if (!M) return; M.del.delayTime.setTargetAtTime(Math.min(1.9, (S.delay || 3 / 16) * 16 * (60 / S.bpm / 4)), ctx.currentTime, .3); M.fb.gain.setTargetAtTime(S.fb || .38, ctx.currentTime, .3); }
+
+/* ---------- transport ---------- */
+function play(on) {
+  if (!ctx || on === playing) return; playing = on;
+  if (on) { if (ctx.state === "suspended") ctx.resume(); M.out.gain.cancelScheduledValues(ctx.currentTime); M.out.gain.setTargetAtTime(outLevel(), ctx.currentTime, .05); nextT = ctx.currentTime + .06; timer = setInterval(scheduler, 25); }
+  else { clearInterval(timer); timer = null; M.out.gain.setTargetAtTime(0, ctx.currentTime, .06); M.pre.gain.cancelScheduledValues(ctx.currentTime); M.pre.gain.setValueAtTime(1, ctx.currentTime + .2); }
+  ui();
+}
+async function startWith(S) {                               // the first record of the night
+  await loadSub(S, (d, n) => status(`loading ${S.name.toLowerCase()} · ${d}/${n}`)); status("");
+  FAM = S.fam; cur = newDeck(S, "intro"); decks = [cur]; bpm = S.bpm; setDelayTime(S);
+  for (const X of S.fam.subs) if (X !== S) loadSub(X).catch(() => {});              // the rest of the crate, in the background
+}
+const mutedRoles = new Set(); let soloRole = null;
+function applyMutes(D) { for (const D2 of D ? [D] : decks) for (const P of Object.values(D2.parts)) { const on = soloRole ? P.role === soloRole : !mutedRoles.has(P.role); P.ch.out.gain.setTargetAtTime(on ? P.ch.level : 0, ctx.currentTime, .03); } }
+
+/* =====================================================================
+   LIGHT · black ground, light only. Back to front: a liquid field with contour lines (WebGL); a dot matrix breathing with
+   the low end; the mix written around the dial as a polar slit-scan, one turn per bar; light trails thrown off by the hits;
+   fixed neon rings, one per role, each bar's hits joined into the shape of its rhythm (both records during a mix, the
+   outgoing one dashed). The rings never move or change shape, and nothing flashes. Below: a hairline step pattern.
+   ===================================================================== */
+const cv = document.getElementById("cv"), g2 = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1, recMode = false;
+const glC = document.createElement("canvas"), gl = glC.getContext("webgl2", { premultipliedAlpha: false, antialias: false });
+const specC = document.createElement("canvas"), sg = specC.getContext("2d"), trailC = document.createElement("canvas"), tg = trailC.getContext("2d");
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  if (recMode) { W = 1080; H = 1920; } else { W = Math.round(innerWidth * DPR); H = Math.round(innerHeight * DPR); }
+  cv.width = W; cv.height = H; specC.width = trailC.width = W; specC.height = trailC.height = H;
+  glC.width = Math.max(2, Math.round(W * .7)); glC.height = Math.max(2, Math.round(H * .7));
+}
+const NP = new Float32Array(512); for (let i = 0; i < 512; i++) NP[i] = Math.random();
+function vnoise(x, y) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const hsh = (a, b) => NP[((a * 73856093) ^ (b * 19349663)) & 511];
+  return lerp(lerp(hsh(xi, yi), hsh(xi + 1, yi), u), lerp(hsh(xi, yi + 1), hsh(xi + 1, yi + 1), u), v); }
+addEventListener("resize", () => { if (!recMode) resize(); });
+
+/* ---------- 1. the liquid field ---------- */
+let glProg = null, glU = {};
+function initGL() {
+  if (!gl) return;
+  const vs = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+  const fs = `#version 300 es
+precision highp float;
+uniform vec2 res; uniform float t, warp, energy, flash, black; uniform vec3 c1, c2, c3;
+out vec4 o;
+float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+  return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+1.), f.x), f.y); }
+float fbm(vec2 p){ float v = 0., a = .5; for (int i = 0; i < 5; i++){ v += a*n(p); p = p*2.03 + vec2(1.7, 9.2); a *= .5; } return v; }
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5*res) / res.y, p = uv * 1.9;
+  vec2 q = vec2(fbm(p + t*.04), fbm(p + vec2(5.2, 1.3) - t*.035));
+  vec2 r = vec2(fbm(p + (1.4+warp*2.2)*q + vec2(1.7, 9.2) + t*.06), fbm(p + (1.4+warp*2.2)*q + vec2(8.3, 2.8) - t*.05));
+  float f = fbm(p + r*(1.3 + warp*1.5));
+  vec3 col = mix(c1, c2, smoothstep(.25, .8, f));
+  col = mix(col, c3, smoothstep(.45, 1.1, length(r - .5)*1.3));
+  col += .22*(.5 + .5*cos(6.2831*(f*1.6 + vec3(0., .33, .67) + t*.025))) * smoothstep(.5, .95, f);   // oil-film sheen
+  float k = f*16., w = fwidth(k), d = abs(fract(k) - .5)/max(w, 1e-4);
+  float line = (1. - clamp(d*.9, 0., 1.)) * step(.5, fract(floor(k)*.5 + .25));                    // every other level drawn
+  col *= .18 + .5*energy;
+  col += vec3(line) * (.035 + .13*energy) * smoothstep(1.4, .3, length(uv));
+  col += flash * vec3(.9, .9, 1.) * .5;
+  col *= smoothstep(1.25, .15, length(uv*vec2(.9, 1.1)));
+  o = vec4(col * black, 1.);
+}`;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.warn(gl.getShaderInfoLog(s)); return s; };
+  glProg = gl.createProgram(); gl.attachShader(glProg, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(glProg, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(glProg);
+  if (!gl.getProgramParameter(glProg, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(glProg)); glProg = null; return; }
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(glProg, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  for (const u of ["res", "t", "warp", "energy", "flash", "black", "c1", "c2", "c3"]) glU[u] = gl.getUniformLocation(glProg, u);
+}
+function drawGL(t, S) {
+  if (!glProg) return false;
+  gl.viewport(0, 0, glC.width, glC.height); gl.useProgram(glProg);
+  const pal = S.pal, c = (a, k) => a.map(x => x / 255 * k);
+  gl.uniform2f(glU.res, glC.width, glC.height); gl.uniform1f(glU.t, t * ((cur?.rate || 1) < 1 ? .6 : 1)); gl.uniform1f(glU.warp, S.warp);
+  gl.uniform1f(glU.energy, S.energy); gl.uniform1f(glU.flash, S.flash); gl.uniform1f(glU.black, S.black);
+  gl.uniform3fv(glU.c1, c([8, 9, 16], 1)); gl.uniform3fv(glU.c2, c(pal[0], .42)); gl.uniform3fv(glU.c3, c(pal[1], .4));
+  gl.drawArrays(gl.TRIANGLES, 0, 3); return true;
+}
+
+
+/* ---------- state the eye follows ---------- */
+const S = { energy: .3, warp: .2, flash: 0, black: 1, pal: [[200, 200, 220], [120, 120, 160], [255, 255, 255]], fade: 1, low: 0, lastA: null };
+const ENERGY = { intro: .35, groove: .62, groove2: .72, break: .42, build: .6, drop: 1, outro: .38 };
+let particles = [], lastHitSeen = 0;
+const VIS = { sub: null, mix: null };
+let rings = [], showHud = true;
+const lastHit = [];
+function audioNow() { return ctx ? ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0) : performance.now() / 1000; }
+function curBar(now) { let b = null; for (const x of TL) if (x.t0 <= now) b = x; return b; }
+function geom() {
+  const portrait = H > W * 1.2, cx = W / 2;
+  const base = portrait ? W * .38 : Math.min(W, H) * .31, cy = portrait ? H * .4 : H * .45;
+  return { cx, cy, base, portrait };
+}
+function rgba(c, a) { return `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${clamp(a, 0, 1).toFixed(3)})`; }
+const partColor = k => { const p = S.pal; return k % 3 === 2 ? [235, 240, 255] : p[k % 3 === 0 ? 0 : 1]; };
+const isOn = role => soloRole ? role === soloRole : !mutedRoles.has(role);
+let VIEW = { ents: [], pos: 0, main: null };
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (!W) resize();
+  const now = audioNow(), t = performance.now() / 1000, dt = Math.min(.05, (t - (frame.last || t)) || .016); frame.last = t;
+  if (VIEW_MODE === "atlas") { drawAtlas(now, t, dt); viewFade(); return; }
+  const { cx, cy, base } = geom();
+  const B = playing ? curBar(now) : null, pos = B ? clamp((now - B.t0) / B.sd, 0, 15.999) : (frame.pos || 0); frame.pos = pos;
+  // which records we hear: during a mix, the weights follow the crossfade
+  const ml = MIXLOG.filter(m => m.t0 <= now).pop(), mu = ml ? clamp((now - ml.t0) / Math.max(.01, ml.t1 - ml.t0)) : 1;
+  const weight = id => !ml ? 1 : id === ml.to && id === ml.from ? 1 : id === ml.to ? smooth(mu) : id === ml.from ? 1 - smooth(mu) : 1;
+  const ents = B ? B.decks.map(e => ({ ...e, w: weight(e.id), out: ml && mu < 1 && e.id === ml.from && ml.from !== ml.to })) : [];
+  const main = ents.reduce((a, e) => !a || e.w > a.w ? e : a, null);
+  VIS.sub = ml && mu < 1 ? (smooth(mu) > .5 ? ml.toSub : ml.fromSub) : (main?.sub || cur?.sub || VIS.sub); VIS.mix = ml && mu < 1 ? { ...ml, u: mu } : null;
+  VIEW = { ents, pos, main };
+  const sec = main ? main.sec : "intro";
+  if (VIS.sub) { const pa = VIS.mix ? ml.fromSub.palette : VIS.sub.palette, pb = VIS.mix ? ml.toSub.palette : VIS.sub.palette, k = VIS.mix ? smooth(mu) : 1;
+    S.pal = pa.map((c, i) => c.map((x, j) => lerp(x, pb[i][j], k))); }
+  let silent = false; for (const m of MARKS) if (m.type === "silence" && now >= m.t && now < m.end) silent = true;
+  if (MARKS.length > 60) MARKS.splice(0, MARKS.length - 60);
+  let eT = playing ? (ENERGY[sec] ?? .5) : .22, wT = .25;
+  if (sec === "build" && main) { const k = (main.bib + pos / 16) / main.n; eT = .5 + .5 * k; wT = .25 + 1.4 * k; }
+  if (sec === "drop") wT = .7;
+  S.energy += (eT - S.energy) * Math.min(1, dt * 1.2); S.warp += (wT - S.warp) * Math.min(1, dt * 1.2);
+  S.black += ((silent ? .45 : 1) - S.black) * Math.min(1, dt * 6);                     // the beat of silence: a gentle dim, nothing else
+  S.fade += ((!cur ? .4 : 1) - S.fade) * Math.min(1, dt * 3);
+  const slow = (cur?.rate || 1) < 1;
+  let freq = null; if (analyser && playing) { freq = frame.f ??= new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(freq); }
+  if (freq) { let l = 0; for (let i = 1; i < 12; i++) l += freq[i]; S.low += (l / 11 / 255 - S.low) * .35; } else S.low *= .9;
+
+  // 1. the liquid field
+  g2.globalCompositeOperation = "source-over"; g2.globalAlpha = 1; g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H);
+  if (drawGL(t * (slow ? .6 : 1), S)) { g2.globalAlpha = (.55 + .45 * S.energy) * S.fade * S.black; g2.drawImage(glC, 0, 0, W, H); g2.globalAlpha = 1; }
+  g2.globalCompositeOperation = "lighter";
+  // 2. dot matrix
+  const sp = Math.max(13, Math.round(W / 96)), lowE = S.low * S.black; g2.fillStyle = "#cfd6e6";
+  for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) {
+    const d = Math.hypot(x - cx, y - cy) / base;
+    const a = (.035 + .25 * lowE * Math.exp(-Math.pow(d - 1.55 - lowE * .4, 2) * 3) + .05 * Math.exp(-Math.pow(d - .2, 2) * 8) * S.energy) * S.black;
+    if (a < .03) continue; const r = (.6 + a * 3) * DPR; g2.globalAlpha = a; g2.fillRect(x - r / 2, y - r / 2, r, r);
+  }
+  g2.globalAlpha = 1;
+  // 3. the mix written around the dial, one turn per bar
+  const a = -Math.PI / 2 + pos / 16 * TAU, rMin = base * .1, rMax = base * 1.34;
+  sg.globalCompositeOperation = "destination-out"; sg.fillStyle = "rgba(0,0,0,.006)"; sg.fillRect(0, 0, W, H);
+  if (S.lastA == null || !playing) S.lastA = a;
+  let a0 = S.lastA, a1 = a; if (a1 < a0) a1 += TAU; if (a1 - a0 > 1) a0 = a1 - .05;
+  sg.beginPath(); sg.moveTo(cx, cy); sg.arc(cx, cy, rMax * 1.02, a1, a1 + .06); sg.closePath(); sg.fillStyle = "rgba(0,0,0,1)"; sg.fill();
+  if (freq && !silent && a1 > a0) {
+    sg.globalCompositeOperation = "lighter"; const NB = 84, sr = ctx.sampleRate, bw = (rMax - rMin) / NB;
+    sg.lineWidth = bw * .78; sg.setLineDash([1.3 * DPR, 1.5 * DPR]);
+    for (let i = 0; i < NB; i++) {
+      const f0 = 38 * Math.pow(15000 / 38, i / NB), f1 = 38 * Math.pow(15000 / 38, (i + 1) / NB);
+      const i0 = Math.floor(f0 / (sr / 2) * freq.length), i1 = Math.max(i0 + 1, Math.floor(f1 / (sr / 2) * freq.length));
+      let m = 0; for (let j = i0; j < i1; j++) m = Math.max(m, freq[j]); m = Math.pow(m / 255, 1.7);
+      if (m < .04) continue;
+      sg.strokeStyle = rgba(m > .45 ? S.pal[0] : [220, 226, 240], m * .95); sg.beginPath(); sg.arc(cx, cy, rMin + (i + .5) * bw, a0, a1 + .004); sg.stroke();
+    }
+    sg.setLineDash([]);
+  }
+  S.lastA = a;
+  g2.globalAlpha = .85 * S.black * S.fade; g2.drawImage(specC, 0, 0); g2.globalAlpha = 1;
+
+  // the rings: fixed, round, one per role
+  const roles = (VIS.sub?.fam || FAM).roles, N = roles.length;
+  rings = roles.map((role, k) => {
+    const r = base * (.26 + .74 * k / Math.max(1, N - 1)), def = VIS.sub?.parts[role];
+    const stepPt = s => { const an = -Math.PI / 2 + s / 16 * TAU; return [cx + r * Math.cos(an), cy + r * Math.sin(an)]; };
+    const pts = []; for (let j = 0; j <= 96; j++) pts.push(stepPt(j / 6));
+    return { k, role, r, label: def ? def.label : "—", empty: !def, stepPt, pts };
+  });
+  // hits → light trails (no bursts)
+  for (const hh of HITS) {
+    if (hh.t > now || hh.t <= lastHitSeen) continue;
+    (lastHit[hh.p] ??= [])[Math.round(hh.s) % 16] = hh.t;
+    const R = rings[hh.p]; if (!R || reduced || silent) continue;
+    const [x, y] = R.stepPt(hh.s), n = Math.round(1 + hh.v * 3);
+    for (let q = 0; q < n && particles.length < 700; q++) {
+      const ang = Math.atan2(y - cy, x - cx) + (Math.random() - .5) * .8, sp3 = (1.5 + Math.random() * 3) * DPR;
+      particles.push({ x, y, vx: Math.cos(ang) * sp3, vy: Math.sin(ang) * sp3, life: 1, col: partColor(hh.p), w: (.6 + Math.random()) * DPR });
+    }
+  }
+  for (const hh of HITS) if (hh.t <= now) lastHitSeen = Math.max(lastHitSeen, hh.t);
+  if (HITS.length > 400) HITS.splice(0, HITS.length - 400);
+  tg.globalCompositeOperation = "destination-out"; tg.fillStyle = "rgba(0,0,0,.045)"; tg.fillRect(0, 0, W, H);
+  tg.globalCompositeOperation = "lighter";
+  const pull = sec === "build" ? .05 + .12 * S.warp : .012, tsc = .0028 / DPR;
+  for (const p of particles) {
+    const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy) + 1e-3, nang = vnoise(p.x * tsc, p.y * tsc + t * .15) * TAU * 2;
+    p.vx += (-dy / d * .35 + Math.cos(nang) * .25 - dx / d * pull * (d > base * 1.7 ? 3 : 1)) * DPR * .4;
+    p.vy += (dx / d * .35 + Math.sin(nang) * .25 - dy / d * pull * (d > base * 1.7 ? 3 : 1)) * DPR * .4;
+    p.vx *= .965; p.vy *= .965;
+    const ox = p.x, oy = p.y; p.x += p.vx * (slow ? .6 : 1); p.y += p.vy * (slow ? .6 : 1); p.life -= dt * .5;
+    tg.strokeStyle = rgba(p.col, Math.min(1, p.life) * .55); tg.lineWidth = p.w; tg.beginPath(); tg.moveTo(ox, oy); tg.lineTo(p.x, p.y); tg.stroke();
+  }
+  particles = particles.filter(p => p.life > 0 && p.x > -50 && p.y > -50 && p.x < W + 50 && p.y < H + 50);
+  g2.globalAlpha = S.black * S.fade; g2.drawImage(trailC, 0, 0); g2.globalAlpha = 1;
+  // the neon rings and the shapes of their rhythms
+  for (const R of rings) {
+    const col = partColor(R.k), on = isOn(R.role), al = (on ? 1 : .22) * (R.empty ? .3 : 1) * S.fade * S.black;
+    g2.beginPath(); R.pts.forEach(([x, y], j) => j ? g2.lineTo(x, y) : g2.moveTo(x, y));
+    g2.strokeStyle = rgba(col, .07 * al * (1 + S.energy)); g2.lineWidth = 7 * DPR; g2.stroke();
+    g2.strokeStyle = rgba(col, (.35 + .4 * S.energy) * al); g2.lineWidth = 1.1 * DPR; g2.stroke();
+    for (let s2 = 0; s2 < 16; s2++) { const [x, y] = R.stepPt(s2); g2.fillStyle = rgba([200, 205, 220], (s2 % 4 ? .12 : .3) * al); g2.fillRect(x - DPR, y - DPR, 2 * DPR, 2 * DPR); }
+    for (const E of ents) {
+      if (E.w < .03) continue;
+      const steps = [...new Set(E.ev.filter(e => e.p === R.k).map(e => Math.round(e.s * 2) / 2))].sort((x2, y2) => x2 - y2), w = E.w;
+      if (steps.length >= 2 && on) {
+        g2.beginPath(); steps.forEach((s2, j) => { const [x, y] = R.stepPt(s2); j ? g2.lineTo(x, y) : g2.moveTo(x, y); }); if (steps.length > 2) g2.closePath();
+        g2.fillStyle = rgba(col, .035 * S.black * w); if (steps.length > 2) g2.fill();
+        g2.strokeStyle = rgba(col, .38 * S.black * w); g2.lineWidth = .9 * DPR; if (E.out) g2.setLineDash([3 * DPR, 3 * DPR]); g2.stroke(); g2.setLineDash([]);
+      }
+      for (const s2 of steps) {                             // a hit: the step brightens and swells a little, then settles
+        const th = lastHit[R.k]?.[Math.round(s2) % 16], fl = th != null && now >= th ? Math.exp(-(now - th) * 9) : 0, [x, y] = R.stepPt(s2);
+        g2.fillStyle = rgba(col, (.35 + .5 * fl) * al * w); g2.beginPath(); g2.arc(x, y, (1.6 + 1.6 * fl) * DPR, 0, TAU); g2.fill();
+      }
+    }
+  }
+  if (rings.length && playing) {                           // the playhead: one beam through every ring
+    g2.beginPath(); rings.forEach((R, j) => { const [x, y] = R.stepPt(pos); j ? g2.lineTo(x, y) : g2.moveTo(x, y); });
+    g2.strokeStyle = rgba([255, 255, 255], .55 * S.black + .1); g2.lineWidth = 1 * DPR; g2.stroke();
+    const [x, y] = rings[rings.length - 1].stepPt(pos); g2.fillStyle = "rgba(255,255,255,.9)"; g2.beginPath(); g2.arc(x, y, 2.2 * DPR, 0, TAU); g2.fill();
+  }
+  g2.globalCompositeOperation = "source-over";
+  if (showHud || recMode) hud(now, pos, silent);
+  g2.globalAlpha = 1; viewFade();
+}
+function viewFade() { const k = clamp((performance.now() - viewT) / 500); if (k < 1) { g2.globalCompositeOperation = "source-over"; g2.fillStyle = `rgba(3,3,5,${1 - k})`; g2.fillRect(0, 0, W, H); } }
+
+/* ---------- readouts ---------- */
+const FONT_T = "'Space Grotesk', 'Helvetica Neue', sans-serif", FONT_M = "'IBM Plex Mono', ui-monospace, monospace";
+function txt(s, x, y, size, { font = FONT_M, weight = 400, color = "#e9ecf2", alpha = 1, align = "left", track = 0, italic = false } = {}) {
+  g2.font = `${italic ? "italic " : ""}${weight} ${size}px ${font}`; g2.textAlign = align; g2.globalAlpha = alpha; g2.fillStyle = color;
+  if ("letterSpacing" in g2) g2.letterSpacing = track + "px"; g2.fillText(s, x, y); if ("letterSpacing" in g2) g2.letterSpacing = "0px"; g2.globalAlpha = 1;
+}
+/* ---------- the title's letter reveal: each character runs through random glyphs and locks in at its own moment ---------- */
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+=/<>";
+function makeScrambler(dur0) {
+  const st = { shown: null, from: "", to: "", t0: 0, dur: 0, lock: [], glyph: [], tick: 0 };
+  return text => {
+    const now = performance.now();
+    if (st.shown === null) { st.shown = st.to = text; return text; }
+    if (text !== st.to) {                                   // a new target: start from what is on screen now
+      st.from = st.shown; st.to = text; st.t0 = now; st.dur = dur0 + text.length * 22;
+      const L = Math.max(st.from.length, text.length);
+      st.lock = Array.from({ length: L }, (_, i) => (.12 + .62 * (i / L) + .26 * Math.random()) * st.dur);
+      st.glyph = Array.from({ length: L }, () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)]);
+    }
+    const el = now - st.t0;
+    if (el >= st.dur) { st.shown = st.to; return st.to; }
+    if (now - st.tick > 45) { st.tick = now; for (let i = 0; i < st.glyph.length; i++) if (Math.random() < .7) st.glyph[i] = GLYPHS[Math.floor(Math.random() * GLYPHS.length)]; }
+    let out = "";
+    for (let i = 0; i < st.lock.length; i++) {
+      const start = st.lock[i] * .35;                       // each character first leaves the old name, then scrambles, then locks
+      if (el >= st.lock[i]) out += st.to[i] ?? "";
+      else if (el < start) out += st.from[i] ?? "";
+      else out += st.to[i] === " " && st.from[i] === " " ? " " : st.glyph[i];
+    }
+    return (st.shown = out.replace(/\s+$/, ""));
+  };
+}
+const scramble = makeScrambler(900), scramble2 = makeScrambler(700);
+let hits2 = [];                                             // clickable: families, styles, pattern rows
+function hud(now, pos, silent) {
+  const Sx = VIS.sub; if (!Sx) return;
+  const { cx, cy, base, portrait } = geom(), u = DPR * (portrait ? 1.9 : 1), pad = 28 * u, dimC = "#6f7585", al = S.fade;
+  hits2 = [];
+  // families · style · tempo, key, place
+  let x = pad;
+  txt("◂ ATLAS", x, pad + 10 * u, 10 * u, { color: "#c9cdd6", track: 3 * u, alpha: al }); g2.font = `400 ${10 * u}px ${FONT_M}`;
+  { const w = g2.measureText("◂ ATLAS").width + 7 * 3 * u; hits2.push({ x0: x - 6 * u, x1: x + w, y0: pad - 4 * u, y1: pad + 16 * u, act: () => setView("atlas") }); x += w + 30 * u; }
+  FAMILIES.forEach(F => { const on = F === Sx.fam; txt(F.name.toUpperCase(), x, pad + 10 * u, 10 * u, { color: on ? "#fff" : "#4f5462", track: 3 * u, alpha: al });
+    g2.font = `400 ${10 * u}px ${FONT_M}`; const w = g2.measureText(F.name.toUpperCase()).width + F.name.length * 3 * u;
+    hits2.push({ x0: x - 6 * u, x1: x + w, y0: pad - 4 * u, y1: pad + 16 * u, act: () => requestSub(F.subs[0]) }); x += w + 22 * u; });
+  const T = VIS.mix ? VIS.mix.fromSub : (cur?.sub || Sx);   // the title changes once the mix is done
+  txt(scramble(T.name.toUpperCase()), pad, pad + 56 * u, Math.min(52 * u, W / 14), { font: FONT_T, weight: 300, track: 5 * u, alpha: al });
+  txt(`${Math.round(bpm)} BPM   ·   ${scramble2(`${T.fam.keyName.toUpperCase()}${(cur?.rate || 1) < 1 && !VIS.mix ? "   ·   SLOWED ×0.82" : ""}   ·   ${T.where.toUpperCase()}`)}`, pad, pad + 80 * u, 10 * u, { color: dimC, track: 1.5 * u, alpha: al });
+  if (!portrait && !recording) txt("0  HELP", W - pad, pad + 10 * u, 8.5 * u, { align: "right", color: "#4f5462", track: 2 * u, alpha: al });
+  if (recording) { const blink = (performance.now() / 500 | 0) % 2; txt(`${blink ? "●" : "○"} REC`, W - pad, pad + 10 * u, 11 * u, { align: "right", color: "#ff3355", track: 2 * u }); }
+
+  // ring callouts
+  const lx0 = portrait ? Math.max(pad + 64 * u, cx - base * 1.15) : cx - base * 1.5, N2 = rings.length;
+  rings.forEach((R, k) => {
+    const [ax, ay] = R.stepPt(12), ly = cy + (k - (N2 - 1) / 2) * 15 * u, on = isOn(R.role), a2 = al * (R.empty ? .45 : 1);
+    txt(R.label, lx0 - 6 * u, ly + 3 * u, 8.5 * u, { align: "right", color: on ? "#c9cdd6" : "#4b505d", track: 1.5 * u, alpha: a2 * .9 });
+    g2.strokeStyle = rgba(partColor(k), (on && !R.empty ? .35 : .1) * a2); g2.lineWidth = .8 * DPR;
+    g2.beginPath(); g2.moveTo(lx0, ly); g2.lineTo(lx0 + 14 * u, ly); g2.lineTo(ax, ay); g2.stroke();
+    hits2.push({ x0: lx0 - 150 * u, x1: lx0, y0: ly - 7 * u, y1: ly + 7 * u, act: () => { if (R.empty) return; mutedRoles.has(R.role) ? mutedRoles.delete(R.role) : mutedRoles.add(R.role); applyMutes(); } });
+  });
+  // the pattern: this bar as hairlines, one thin row per role, same colours as the rings
+  const { ents, main } = VIEW, rows = rings.length, rowH = 6 * u, cell = Math.min(18 * u, (portrait ? W * .6 : W * .26) / 16);
+  const gw = cell * 16, gx = cx - gw / 2, gy = H - pad - (portrait ? 110 : 64) * u - rows * rowH, ph = Math.floor(pos);
+  for (let s2 = 0; s2 <= 16; s2 += 4) { g2.fillStyle = `rgba(255,255,255,${.08 * al})`; g2.fillRect(gx + s2 * cell, gy - 2 * u, 1, rows * rowH + 2 * u); }
+  if (playing) { g2.fillStyle = `rgba(255,255,255,${.5 * al})`; g2.fillRect(gx + pos * cell, gy - 3 * u, 1 * DPR, rows * rowH + 4 * u); }
+  rings.forEach((R, k) => {
+    const y = gy + k * rowH + rowH / 2, col = partColor(k), a2 = al * (R.empty ? .2 : isOn(R.role) ? 1 : .3);
+    for (const E of ents) {
+      if (E.w < .04) continue;
+      for (const e of E.ev) {
+        if (e.p !== k) continue;
+        const len = Math.min(16 - e.s, Math.max(.6, e.n != null || e.len ? Math.min(e.len || .6, 16) : .6)), lit = Math.floor(e.s) === ph && playing;
+        g2.fillStyle = rgba(col, (lit ? 1 : .75) * a2 * E.w * (E.out ? .5 : 1)); g2.fillRect(gx + e.s * cell + 1, y - 1 * DPR, Math.max(2, len * cell - 2), 2 * DPR);
+      }
+    }
+  });
+  if (main) txt(`${main.sec.replace("2", " II").toUpperCase()}  ${String(main.bib + 1).padStart(2, "0")}/${String(main.n).padStart(2, "0")}`, gx + gw, gy - 8 * u, 7.5 * u, { align: "right", color: "#5d6272", track: 2 * u, alpha: al });
+
+  // the styles of this family; during a mix a line slides from the old one to the new
+  const subs = Sx.fam.subs, gap = 26 * u, sz = 10 * u; g2.font = `400 ${sz}px ${FONT_M}`;
+  const widths = subs.map(X => g2.measureText(X.name.toUpperCase()).width + X.name.length * 2 * u), total = widths.reduce((a, b) => a + b, 0) + gap * (subs.length - 1);
+  let sx = (W - total) / 2; const sy = H - pad - (portrait ? 30 * u : 4 * u), pos2 = {};
+  subs.forEach((X, i) => {
+    const mixTo = VIS.mix && VIS.mix.toSub === X, mixFrom = VIS.mix && VIS.mix.fromSub === X, isNow = X === Sx, queued = (pending === X) || (mixReq === X);
+    txt(X.name.toUpperCase(), sx, sy, sz, { color: isNow ? "#ffffff" : mixTo || mixFrom ? "#c9cdd6" : queued ? "#9aa0ae" : "#4f5462", track: 2 * u, alpha: al });
+    pos2[X.id] = [sx, sx + widths[i]];
+    hits2.push({ x0: sx - 8 * u, x1: sx + widths[i] + 8 * u, y0: sy - 16 * u, y1: sy + 8 * u, act: () => requestSub(X) });
+    if (isNow && !VIS.mix) { g2.fillStyle = `rgba(255,255,255,${.85 * al})`; g2.fillRect(sx, sy + 8 * u, widths[i] - 2 * u, 1.5 * u); }
+    if (queued && !VIS.mix) { const bl = (performance.now() / 400 | 0) % 2; g2.fillStyle = `rgba(255,255,255,${bl ? .5 : .15})`; g2.fillRect(sx, sy + 8 * u, widths[i] - 2 * u, 1 * u); }
+    sx += widths[i] + gap;
+  });
+  if (VIS.mix && pos2[VIS.mix.fromSub.id] && pos2[VIS.mix.toSub.id]) {
+    const [a0, a1] = pos2[VIS.mix.fromSub.id], [b0, b1] = pos2[VIS.mix.toSub.id], k = smooth(VIS.mix.u);
+    g2.fillStyle = `rgba(255,255,255,${.85 * al})`; g2.fillRect(lerp(a0, b0, k), sy + 8 * u, lerp(a1, b1, k) - lerp(a0, b0, k), 1.5 * u);
+    txt({ blend: "EQ BLEND · BASS SWAP", filter: "FILTER MIX", ride: "PITCH FADER", cut: "CUT ON THE ONE" }[VIS.mix.kind], W / 2, sy + 26 * u, 8 * u, { align: "center", color: dimC, track: 2 * u, alpha: al });
+  }
+  if (portrait) txt("PRESSINGS", W / 2, H - pad * .7, 10 * u, { align: "center", color: "#5d6272", track: 6 * u });
+}
+
+/* =====================================================================
+   THE ATLAS · the first screen: every style as a node of light, grouped into its family's constellation, with faint lines
+   for lineage (what grew out of what). Hover a node to read where and when it was born; click it to hear it live.
+   ===================================================================== */
+let VIEW_MODE = "atlas", viewT = 0, atlasHover = null, atlasNodes = [], atlasPending = null;
+const LINEAGE = [
+  ["cumbia", "chicha"], ["cumbia", "rebajada"], ["cumbia", "digital"], ["chicha", "tropical"], ["chicha", "selva"], ["digital", "andean"], ["digital", "tropical"],
+  ["dancehall", "reggaeton"], ["reggaeton", "dominican"], ["reggaeton", "moombahton"], ["electrohouse", "moombahton"], ["dancehall", "jungle"],
+  ["disco", "chicago"], ["disco", "italo"], ["disco", "hinrg"], ["disco", "nudisco"], ["disco", "frenchtouch"], ["italo", "chicago"], ["hinrg", "chicago"],
+  ["electrofunk", "electro"], ["electro", "detroit"], ["electro", "miami"], ["electro", "electroclash"], ["electro", "breakbeat"], ["electroclash", "electrohouse"], ["frenchtouch", "electrohouse"],
+  ["chicago", "deep"], ["chicago", "acid"], ["chicago", "tech"], ["chicago", "ambient"], ["chicago", "ukg"], ["acid", "acidt"], ["detroit", "tech"],
+  ["detroit", "minimalt"], ["minimalt", "minimal"], ["minimalt", "dubtechno"], ["detroit", "industrial"], ["detroit", "tribal"],
+  ["boombap", "jazzhop"], ["boombap", "lofi"], ["jazzhop", "lofi"], ["boombap", "screwed"], ["screwed", "trap"],
+  ["breakbeat", "jungle"], ["jungle", "liquid"], ["ukg", "dubstep"],
+];
+const FAM_ORDER = ["cumbia", "dembow", "hiphop", "breaks", "electro", "techno", "house", "disco"];
+const FAM_COL = { cumbia: [255, 150, 40], dembow: [255, 70, 160], hiphop: [255, 92, 80], breaks: [130, 255, 120], electro: [60, 230, 230], techno: [90, 140, 255], house: [236, 239, 246], disco: [200, 120, 255] };
+function famColor(F) { return FAM_COL[F.id] || F.subs[0].palette[0]; }
+function atlasLayout() {                                   // families on a wide ellipse, styles on a small ring around each family's name
+  const portrait = H > W * 1.2, cx = W / 2, cy = H * (portrait ? .5 : .53), rx = W * (portrait ? .3 : .34), ry = H * (portrait ? .36 : .31);
+  const fams = FAM_ORDER.map(id => FAMILIES.find(F => F.id === id)).filter(Boolean);
+  const nodes = [], centers = [];
+  fams.forEach((F, i) => {
+    const a = -Math.PI / 2 + i / fams.length * TAU + .2, fx = cx + rx * Math.cos(a), fy = cy + ry * Math.sin(a), n = F.subs.length;
+    const rr = Math.min(W, H) * (portrait ? .1 : .085) * (1 + n * .03);
+    centers.push({ F, x: fx, y: fy, r: rr });
+    F.subs.forEach((S, k) => { const b = -Math.PI / 2 + k / n * TAU + i * .7; nodes.push({ S, F, x: fx + rr * Math.cos(b), y: fy + rr * Math.sin(b), out: [Math.cos(b), Math.sin(b)] }); });
+  });
+  return { nodes, centers, cx, cy };
+}
+function drawAtlas(now, t, dt) {
+  const L = atlasLayout(); atlasNodes = L.nodes;
+  const u = DPR * (H > W * 1.2 ? 1.9 : 1), pad = 28 * u, byId = Object.fromEntries(L.nodes.map(n => [n.S.id, n]));
+  const playingId = cur?.sub?.id, pulse = playing ? .5 + .5 * Math.sin(t * TAU * (bpm / 60)) : 0;
+  // background: the same liquid field, quieter
+  g2.globalCompositeOperation = "source-over"; g2.globalAlpha = 1; g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H);
+  if (drawGL(t * .4, { ...S, energy: .25, warp: .2, black: 1, flash: 0, pal: [[90, 100, 140], [60, 70, 110], [200, 200, 220]] })) { g2.globalAlpha = .5; g2.drawImage(glC, 0, 0, W, H); g2.globalAlpha = 1; }
+  g2.globalCompositeOperation = "lighter";
+  const sp = Math.max(13, Math.round(W / 96)); g2.fillStyle = "#cfd6e6";             // the dot matrix, faint
+  for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) { g2.globalAlpha = .035; g2.fillRect(x - .5 * DPR, y - .5 * DPR, DPR, DPR); }
+  g2.globalAlpha = 1;
+  // family halos
+  for (const C of L.centers) {
+    const col = famColor(C.F), grd = g2.createRadialGradient(C.x, C.y, 0, C.x, C.y, C.r * 2);
+    grd.addColorStop(0, rgba(col, .07)); grd.addColorStop(1, rgba(col, 0)); g2.fillStyle = grd; g2.beginPath(); g2.arc(C.x, C.y, C.r * 2, 0, TAU); g2.fill();
+    g2.beginPath(); g2.arc(C.x, C.y, C.r, 0, TAU); g2.strokeStyle = rgba(col, .12); g2.lineWidth = 1 * DPR; g2.setLineDash([2 * DPR, 6 * DPR]); g2.stroke(); g2.setLineDash([]);
+  }
+  // lineage: faint curves; brighter when they touch the hovered or playing style
+  for (const [a, b] of LINEAGE) {
+    const A = byId[a], B = byId[b]; if (!A || !B) continue;
+    const hot = [a, b].includes(atlasHover?.S.id) || [a, b].includes(playingId), mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    const bend = A.F === B.F ? 0 : .35, qx = mx + (L.cx - mx) * bend, qy = my + (L.cy - my) * bend;
+    g2.beginPath(); g2.moveTo(A.x, A.y); g2.quadraticCurveTo(qx, qy, B.x, B.y);
+    const grad = g2.createLinearGradient(A.x, A.y, B.x, B.y); grad.addColorStop(0, rgba(famColor(A.F), hot ? .55 : .14)); grad.addColorStop(1, rgba(famColor(B.F), hot ? .55 : .14));
+    g2.strokeStyle = grad; g2.lineWidth = (hot ? 1.2 : .8) * DPR; g2.stroke();
+  }
+  // the styles
+  for (const N of L.nodes) {
+    const col = famColor(N.F), isHover = atlasHover === N, isPlaying = N.S.id === playingId, isPending = atlasPending === N.S;
+    const r = (isHover ? 6.5 : 4.5) * DPR + (isPlaying ? 2 * pulse * DPR : 0);
+    const grd = g2.createRadialGradient(N.x, N.y, 0, N.x, N.y, r * 5); grd.addColorStop(0, rgba(col, isHover || isPlaying ? .45 : .22)); grd.addColorStop(1, rgba(col, 0));
+    g2.fillStyle = grd; g2.beginPath(); g2.arc(N.x, N.y, r * 5, 0, TAU); g2.fill();
+    g2.fillStyle = rgba(isPlaying ? [255, 255, 255] : col, .95); g2.beginPath(); g2.arc(N.x, N.y, r, 0, TAU); g2.fill();
+    if (isPlaying || isPending) { g2.beginPath(); g2.arc(N.x, N.y, r + 6 * DPR, 0, TAU); g2.strokeStyle = `rgba(255,255,255,${isPending ? .3 + .3 * Math.sin(t * 8) : .5})`; g2.lineWidth = 1 * DPR; g2.stroke(); }
+    const lx = N.x + N.out[0] * 12 * u, ly = N.y + N.out[1] * 12 * u + 3 * u;
+    txt(N.S.name.toUpperCase(), lx, ly, (isHover ? 9.5 : 8.5) * u, { align: N.out[0] < -.2 ? "right" : N.out[0] > .2 ? "left" : "center", color: isHover || isPlaying ? "#ffffff" : "#9aa0ae", track: 1.5 * u });
+  }
+  g2.globalCompositeOperation = "source-over";
+  for (const C of L.centers) txt(C.F.name.toUpperCase(), C.x, C.y + 4 * u, 11 * u, { font: FONT_T, weight: 400, align: "center", color: rgba(famColor(C.F), .95), track: 4 * u });
+  // title, the hovered style's card, what's playing
+  txt("PRESSINGS", pad, pad + 10 * u, 10 * u, { color: "#ffffff", track: 6 * u });
+  txt("AN ATLAS OF MUSIC", pad, pad + 26 * u, 8.5 * u, { color: "#6f7585", track: 3 * u });
+  txt(`${FAMILIES.length} FAMILIES · ${FAMILIES.reduce((a, F) => a + F.subs.length, 0)} STYLES · PICK ONE TO HEAR IT`, pad, pad + 40 * u, 8.5 * u, { color: "#4f5462", track: 2 * u });
+  const N = atlasHover;
+  if (N) { const y = H - pad - 34 * u;
+    txt(N.S.name.toUpperCase(), pad, y, 20 * u, { font: FONT_T, weight: 300, track: 3 * u, color: "#fff" });
+    txt(`${N.F.name.toUpperCase()}   ·   ${N.S.where.toUpperCase()}   ·   ${N.S.bpm} BPM`, pad, y + 20 * u, 9 * u, { color: "#9aa0ae", track: 2 * u }); }
+  if (cur) txt(`NOW PLAYING  ·  ${cur.sub.name.toUpperCase()}   ▸ LIVE`, W - pad, H - pad - 2 * u, 9 * u, { align: "right", color: "#c9cdd6", track: 2 * u });
+  if (atlasPending) txt(`LOADING ${atlasPending.name.toUpperCase()}…`, W - pad, H - pad - 18 * u, 9 * u, { align: "right", color: "#9aa0ae", track: 2 * u });
+  hits2 = cur ? [{ x0: W - pad - 300 * u, x1: W - pad, y0: H - pad - 16 * u, y1: H - pad + 4 * u, act: () => setView("live") }] : [];
+}
+function atlasNodeAt(x, y) { let best = null, bd = 16 * DPR; for (const N of atlasNodes) { const d = Math.hypot(N.x - x, N.y - y); if (d < bd) { bd = d; best = N; } } return best; }
+function setView(v) { if (VIEW_MODE === v) return; VIEW_MODE = v; viewT = performance.now(); }
+async function pickFromAtlas(S) {
+  if (!ctx) {                                              // the first pick also starts the sound (the click is the gesture)
+    initAudio(); atlasPending = S;
+    await startWith(S); atlasPending = null; play(true); save(); ui(); setView("live"); return;
+  }
+  if (cur && S === cur.sub && !mix) { setView("live"); return; }
+  requestSub(S); setView("live");
+}
+
+/* =====================================================================
+   HANDS · pick a style (click its name, ↑/↓ or 1–6) and the DJ mixes it in on the next bar; ←/→ changes family;
+   click a ring to mute, shift-click to solo; V records a reel; H hides the readouts; 0 help.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+let toastT = 0, recording = null;
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), 2200); }
+function status(msg) { $("load").textContent = msg; if (msg && cur && $("intro").classList.contains("hide")) toast(msg); }
+function ui() { const S = cur?.sub; document.title = S ? `Pressings · ${S.name}` : "Pressings"; }
+function save() { const S = mix?.to || mix?.B?.sub || cur?.sub; if (S) history.replaceState(null, "", `#s=${S.id}&seed=${seed}`); }
+let startSub = CUMBIA.subs[0];
+function load() {
+  const h = new URLSearchParams(location.hash.slice(1)), id = h.get("s");
+  for (const F of FAMILIES) for (const S of F.subs) if (S.id === id) startSub = S;
+  seed = +h.get("seed") || ((Math.random() * 1e6) | 0);
+}
+async function start() {
+  if (ctx) return;
+  initAudio(); initGL();
+  $("goBtn").disabled = true; $("goBtn").textContent = "loading…";
+  await startWith(startSub);
+  $("intro").classList.add("hide"); play(true); save(); ui();
+}
+$("goBtn").addEventListener("click", start);
+const helpOpen = () => !$("help").classList.contains("hide");
+function toggleHelp(on = !helpOpen()) { $("help").classList.toggle("hide", !on); }
+const target = () => pending || mixReq || (mix ? (mix.to || mix.B.sub) : cur?.sub);
+function stepSub(d) { const S = target(), L = S.fam.subs; requestSub(L[(L.indexOf(S) + d + L.length) % L.length]); }
+function stepFam(d) { const F = target().fam, i = FAMILIES.indexOf(F); requestSub(FAMILIES[(i + d + FAMILIES.length) % FAMILIES.length].subs[0]); }
+addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if (k === "Escape") { if (helpOpen()) toggleHelp(false); else setView("atlas"); return; }
+  if (k === "m" || k === "M") { setView(VIEW_MODE === "atlas" && cur ? "live" : "atlas"); return; }
+  if (!ctx) return;
+  if (k === "0") { toggleHelp(); return; }
+  if (!cur) return;
+  if (k === " ") { e.preventDefault(); play(!playing); return; }
+  if (k === "ArrowDown" || k === "ArrowUp") { e.preventDefault(); stepSub(k === "ArrowDown" ? 1 : -1); return; }
+  if (k === "ArrowRight" || k === "ArrowLeft") { e.preventDefault(); stepFam(k === "ArrowRight" ? 1 : -1); return; }
+  if (/^[1-9]$/.test(k)) { const L = target().fam.subs, S = L[+k - 1]; if (S) requestSub(S); return; }
+  if (k === "h" || k === "H") { showHud = !showHud; return; }
+  if (k === "v" || k === "V") { recording ? stopRec() : startRec(); return; }
+});
+function ringAt(x, y) {
+  let best = null, bd = 14 * DPR;
+  for (const R of rings) for (let j = 1; j < R.pts.length; j++) {
+    const [ax, ay] = R.pts[j - 1], [bx, by] = R.pts[j], dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy || 1;
+    const t = clamp(((x - ax) * dx + (y - ay) * dy) / l), d = Math.hypot(ax + dx * t - x, ay + dy * t - y);
+    if (d < bd) { bd = d; best = R; }
+  }
+  return best;
+}
+let touch0 = null;
+cv.addEventListener("pointerdown", e => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  if (VIEW_MODE === "atlas") {
+    const h = hits2.find(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1); if (h) { h.act(); return; }
+    const N = atlasNodeAt(x, y); if (N && !atlasPending) pickFromAtlas(N.S); return;
+  }
+  if (!ctx) return;
+  const h = hits2.find(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1); if (h) { h.act(); return; }
+  touch0 = { x: e.clientX, y: e.clientY, t: performance.now() };
+  const R = ringAt(x, y); if (!R || R.empty) return;
+  if (e.shiftKey) { soloRole = soloRole === R.role ? null : R.role; toast(soloRole ? `solo · ${R.label.toLowerCase()}` : "all parts"); }
+  else { mutedRoles.has(R.role) ? mutedRoles.delete(R.role) : mutedRoles.add(R.role); toast(`${R.label.toLowerCase()} ${mutedRoles.has(R.role) ? "muted" : "back in"}`); }
+  applyMutes(); touch0 = null;
+});
+cv.addEventListener("pointermove", e => {
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  if (VIEW_MODE === "atlas") { atlasHover = atlasNodeAt(x, y); cv.style.cursor = atlasHover || hits2.some(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1) ? "pointer" : "default"; return; }
+  cv.style.cursor = hits2.some(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1) ? "pointer" : "crosshair";
+});
+cv.addEventListener("pointerup", e => {                   // swipe sideways on a phone: the next style
+  if (!touch0 || VIEW_MODE === "atlas") return; const dx = e.clientX - touch0.x, dt = performance.now() - touch0.t;
+  if (Math.abs(dx) > 70 && dt < 600) stepSub(dx < 0 ? 1 : -1); touch0 = null;
+});
+
+/* ---------- the reel: 9:16, picture and sound, until V again ---------- */
+function startRec() {
+  if (!cv.captureStream || !window.MediaRecorder) { toast("this browser can't record the canvas"); return; }
+  const types = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"];
+  const mime = types.find(t => MediaRecorder.isTypeSupported(t)); if (!mime) { toast("no video format available"); return; }
+  recMode = true; cv.classList.add("rec"); resize();
+  const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 9e6, audioBitsPerSecond: 192e3 }), chunks = [];
+  rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: mime.split(";")[0] }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `pressings-${cur?.sub.id || "mix"}-${seed}.${mime.includes("mp4") ? "mp4" : "webm"}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  recording = rec; rec.start(500); if (!playing) play(true); toast("recording · V to stop");
+}
+function stopRec() {
+  if (!recording) return; const r = recording; recording = null;
+  try { r.stop(); } catch (e) {}
+  recMode = false; cv.classList.remove("rec"); resize(); toast("reel saved to your downloads");
+}
+
+/* ---------- volume: a quadratic curve, so the slider feels even; remembered in this browser ---------- */
+let vol = .8; try { const v = parseFloat(localStorage.getItem("pressings.vol")); if (v >= 0 && v <= 1) vol = v; } catch (e) {}
+const outLevel = () => 1.28 * vol * vol;
+const volIn = $("volIn");
+function setVol(v) {
+  vol = clamp(v); volIn.value = Math.round(vol * 100); volIn.style.setProperty("--v", `${vol * 100}%`);
+  if (ctx && playing) M.out.gain.setTargetAtTime(outLevel(), ctx.currentTime, .03);
+  try { localStorage.setItem("pressings.vol", vol); } catch (e) {}
+}
+volIn.addEventListener("input", () => setVol(volIn.value / 100));
+volIn.addEventListener("keydown", e => e.stopPropagation());
+setVol(vol);
+load(); resize(); initGL(); requestAnimationFrame(frame);
+window.pressings = { FAMILIES, get cur() { return cur; }, get mix() { return mix; }, get decks() { return decks; }, get ctx() { return ctx; }, get TL() { return TL; }, get HITS() { return HITS; },
+  get MARKS() { return MARKS; }, get MIXLOG() { return MIXLOG; }, get playing() { return playing; }, get analyser() { return analyser; }, get M() { return M; }, get step() { return step; },
+  get bpm() { return bpm; }, get view() { return VIEW_MODE; }, pickFromAtlas, setView, atlasNodes: () => atlasNodes, get clockBar() { return clockBar; }, play, start, requestSub, INST, instUrls, bufCache, subUrls, layout,
+  seekSec(sec) { if (cur) { cur.pos = cur.bars.findIndex(b => b.sec === sec); step = 0; } } };
+
+</script>
+</body>
+</html>
