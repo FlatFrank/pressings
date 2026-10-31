@@ -3,7 +3,7 @@
   PRESSINGS · styles drawn in light, mixed live by a DJ.
   Each record is one genre, composed like a producer would write it (a few parts with one job each, written rests,
   a named progression, the sounds that make the style) and played on real recorded instruments. Every piece runs
-  intro → groove → build → one beat of silence → drop → outro, and the circle draws it: one ring per instrument,
+  intro → groove → break → re-assembly (a transformation of the sound) → return → outro, and the circle draws it: one ring per instrument,
   the hits of each bar joined into the shape of its rhythm, the whole mix written around the dial as it plays.
 
   References (see NOTES.md):
@@ -46,7 +46,7 @@ canvas#cv.rec{object-fit:contain;background:#000}
 .go{display:inline-block;margin-top:18px;border:1px solid rgba(255,255,255,.5);padding:10px 22px;letter-spacing:.3em;text-transform:uppercase;font-size:11px;color:#fff;cursor:pointer;background:none;font-family:inherit}
 .go:hover{background:rgba(255,255,255,.08)}
 #load{margin-top:14px;font-size:11px;color:var(--dim);letter-spacing:.12em;min-height:16px}
-#vol{position:fixed;top:44px;right:28px;z-index:3;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.25em;color:#8a90a0;user-select:none}
+#vol{position:fixed;top:26px;right:calc(34vw + 28px);z-index:3;opacity:0;pointer-events:none;transition:opacity .5s;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.25em;color:#8a90a0;user-select:none}
 #vol input{-webkit-appearance:none;appearance:none;width:110px;height:18px;background:transparent;cursor:pointer;margin:0}
 #vol input::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,#e9ecf2 var(--v,80%),rgba(255,255,255,.18) var(--v,80%))}
 #vol input::-moz-range-track{height:2px;background:rgba(255,255,255,.18)}
@@ -56,12 +56,43 @@ canvas#cv.rec{object-fit:contain;background:#000}
 #vol input:focus-visible{outline:1px solid rgba(255,255,255,.4);outline-offset:4px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(10,10,14,.8);border:1px solid var(--line);padding:8px 14px;z-index:6;opacity:0;transition:opacity .35s;pointer-events:none}
 #toast.show{opacity:1}
+#info{position:fixed;top:0;right:0;bottom:0;width:34vw;box-sizing:border-box;padding:31px 44px 40px 40px;border-left:1px solid rgba(255,255,255,.07);background:rgba(3,3,5,.6);overflow-y:auto;z-index:2;opacity:0;transform:translateX(36px);transition:opacity .45s,transform .6s cubic-bezier(.5,0,.8,.4);pointer-events:none;scrollbar-width:none}
+#info::-webkit-scrollbar{display:none}
+#info.show{opacity:1;transform:none;pointer-events:auto;transition:opacity .9s .85s,transform 1.1s .85s cubic-bezier(.16,.8,.2,1)}
+#info.show #infoIn>*{animation:rise .9s cubic-bezier(.16,.8,.2,1) both}
+#info.show #infoIn>*:nth-child(2){animation-delay:.95s}#info.show #infoIn>*:nth-child(1){animation-delay:.9s}#info.show #infoIn>*:nth-child(3){animation-delay:1s}#info.show #infoIn>*:nth-child(4){animation-delay:1.08s}#info.show #infoIn>*:nth-child(5){animation-delay:1.16s}#info.show #infoIn>*:nth-child(6){animation-delay:1.22s}#info.show #infoIn>*:nth-child(7){animation-delay:1.28s}#info.show #infoIn>*:nth-child(8){animation-delay:1.34s}#info.show #infoIn>*:nth-child(9){animation-delay:1.4s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#infoIn{transition:opacity .45s,transform .45s}
+#infoIn.swap{opacity:0;transform:translateY(6px)}
+#info .lab{font-size:10px;line-height:12px;letter-spacing:.3em;color:#4f5462;text-transform:uppercase;margin:0 0 12px}   /* same size as the trail on the left */
+#info .where{font:300 22px/1.25 "Space Grotesk",sans-serif;letter-spacing:.12em;color:#fff;text-transform:uppercase;margin:0 0 8px}
+#info .when{font-size:10.5px;letter-spacing:.24em;color:#9aa0ae;text-transform:uppercase;margin:0 0 30px}
+#info p{font:300 14px/1.65 "Space Grotesk",sans-serif;color:#b4b9c5;margin:0 0 14px;max-width:48ch}
+#info .snd{margin-top:30px}
+#info .src{margin-top:28px;font-size:9px;letter-spacing:.16em;text-transform:uppercase;line-height:1.5}
+#info .src a{color:#6f7585;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.12);display:inline-block;margin:0 14px 8px 0}
+#info .src a:hover{color:#fff;border-color:#fff}
+@media (max-aspect-ratio:5/6){#info{transform:translateY(36px);top:auto;left:0;width:auto;height:32vh;bottom:132px;border-left:0;border-top:1px solid rgba(255,255,255,.07);padding:20px 22px}#info .where{font-size:17px}#info p{font-size:13px}#info .when{margin-bottom:18px}}
+#info .thread a{color:var(--c,#fff);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.18);cursor:pointer;white-space:nowrap}
+#info .thread a:hover{border-color:var(--c,#fff)}
+#nav{position:fixed;left:28px;top:58px;width:min(calc(66vw - 56px),920px);max-height:calc(100vh - 96px);overflow-y:auto;box-sizing:border-box;padding:26px 28px 18px;background:rgba(3,3,5,.94);border:1px solid rgba(255,255,255,.08);z-index:4;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 26px;opacity:0;transform:translateY(-8px);transition:opacity .3s,transform .4s cubic-bezier(.16,.8,.2,1);pointer-events:none;scrollbar-width:none}
+#nav.open{opacity:1;transform:none;pointer-events:auto}
+#nav h3{margin:0 0 10px;font:400 10px/1.2 "IBM Plex Mono",monospace;letter-spacing:.3em;text-transform:uppercase;color:var(--c)}
+#nav button{display:block;width:100%;text-align:left;background:none;border:0;padding:4px 0;margin:0;font:400 11px/1.35 "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#6f7585;cursor:pointer}
+#nav button:hover{color:#fff}
+#nav button.now{color:#fff}#nav button.now::after{content:"  ●";color:var(--c)}
+#nav button.next{color:#c9cdd6}#nav button.next::after{content:"  →";color:var(--c)}
+@media (max-aspect-ratio:5/6){#nav{left:14px;right:14px;width:auto;top:96px;grid-template-columns:repeat(2,minmax(0,1fr))}}
+#vol.show{opacity:1;pointer-events:auto;transition:opacity .8s .9s}
+@media (max-aspect-ratio:5/6){#vol{right:20px}}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="toast"></div>
 <label id="vol"><span>VOL</span><input id="volIn" type="range" min="0" max="100" value="80" aria-label="Volume"></label>
+<nav id="nav" aria-label="All styles"></nav>
+<aside id="info" aria-live="polite"><div id="infoIn"><div class="lab">Origin</div><div class="where" id="iWhere"></div><div class="when" id="iWhen"></div><div id="iBody"></div><div class="lab snd">The sound</div><p id="iSound"></p><div class="lab snd">Follow the thread</div><p class="thread" id="iThread"></p><div class="src" id="iSrc"></div></div></aside>
 <div class="overlay hide" id="intro">
   <div class="card">
     <h1>Pressings</h1>
@@ -78,8 +109,10 @@ canvas#cv.rec{object-fit:contain;background:#000}
     <h1 style="font-size:34px">Pressings</h1>
     <table>
       <tr><td>Esc  ·  M  ·  ◂ ATLAS</td><td>back to the atlas (the music keeps playing)</td></tr>
-      <tr><td>click a style  ·  ↑ ↓  ·  1–9</td><td>mix to that style (starts on the next bar)</td></tr>
-      <tr><td>click a family  ·  ← →</td><td>cumbia / house</td></tr>
+      <tr><td>click the family or style at the top  ·  L</td><td>the list of every style; pick one to mix to it</td></tr>
+      <tr><td>↑ ↓  ·  1–9</td><td>mix to another style of this family (starts on the next bar)</td></tr>
+      <tr><td>← →</td><td>the previous / next style on the map, across families</td></tr>
+      <tr><td>a name under “Follow the thread”</td><td>mix to a style this one grew from, or led to</td></tr>
       <tr><td>Space</td><td>play / pause</td></tr>
       <tr><td>click a ring</td><td>mute that role · shift-click: solo</td></tr>
       <tr><td>V</td><td>record a 9:16 reel (press again to stop)</td></tr>
@@ -90,7 +123,7 @@ canvas#cv.rec{object-fit:contain;background:#000}
       <tr><td>EQ blend</td><td>new record in with its lows cut, basses swapped on the downbeat, old record out</td></tr>
       <tr><td>Filter mix</td><td>new record's high-pass opens while the old one's low-pass closes</td></tr>
       <tr><td>Pitch fader</td><td>the same record slowed down: cumbia ↔ rebajada</td></tr>
-      <tr><td>Cut on the one</td><td>tempos too far apart: the new record drops on the downbeat</td></tr>
+      <tr><td>Echo out · filter in</td><td>another family, or tempos far apart: over eight bars the old record closes and echoes away while the new one opens, and the tempo is ridden from one to the other</td></tr>
     </table>
     <small>Samples: <a href="https://github.com/sgossner/VCSL" target="_blank" rel="noopener">VCSL</a> (CC0) ·
       Salamander Grand Piano, Alexander Holm (CC-BY 3.0) ·
@@ -163,15 +196,15 @@ function drum(str, map = {}) {
 /* =====================================================================
    SAMPLES · real recorded instruments, loaded from their public homes
    ===================================================================== */
-const FL = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+const FL = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/", MK = "https://gleitz.github.io/midi-js-soundfonts/MusyngKite/";   // MusyngKite: the richer soundfont, for acoustic instruments
 const SAL = "https://tonejs.github.io/audio/salamander/";
 const VC = "https://cdn.jsdelivr.net/gh/sgossner/VCSL@master/";
 const TDM = "https://raw.githubusercontent.com/ritchse/tidal-drum-machines/main/machines/";
 const enc = p => p.split("/").map(encodeURIComponent).join("/");
 const tdm = (...p) => p.map(x => TDM + enc(x));
 const vcsl = (dir, ...f) => f.map(x => VC + enc(dir + "/" + x));
-function fluid(name, lo, hi) {                           // every minor third: the sampler fills the gaps
-  const notes = {}; for (let m = lo - pcOf(lo) % 3; m <= hi + 2; m += 3) notes[m] = `${FL}${name}-mp3/${midiName(m)}.mp3`; return notes;
+function fluid(name, lo, hi, base = FL) {                // every minor third: the sampler fills the gaps
+  const notes = {}; for (let m = lo - pcOf(lo) % 3; m <= hi + 2; m += 3) notes[m] = `${base}${name}-mp3/${midiName(m)}.mp3`; return notes;
 }
 function salamander(lo, hi) { const notes = {}; for (let m = lo - pcOf(lo) % 3; m <= hi + 2; m += 3) if (m >= 21 && m <= 108) notes[m] = `${SAL}${midiName(m, SAL_N)}.mp3`; return notes; }
 const PERC = "Idiophones/Struck Idiophones", MEMB = "Membranophones/Struck Membranophones";
@@ -190,6 +223,11 @@ const INST = {
   "linn.bd": { kind: "drum", urls: tdm("LinnDrum/linndrum-bd/Bassdrum.wav") },
   "linn.sd": { kind: "drum", urls: tdm("LinnDrum/linndrum-sd/0Snarderum-01.wav", "LinnDrum/linndrum-sd/0Snarderum-02.wav", "LinnDrum/linndrum-sd/0Snarderum-03.wav") },
   "linn.hh": { kind: "drum", urls: tdm("LinnDrum/linndrum-hh/Hat Closed-01.wav", "LinnDrum/linndrum-hh/Hat Closed-02.wav", "LinnDrum/linndrum-hh/Hat Closed-03.wav") },
+  "sp12.bd": { kind: "drum", urls: tdm("EmuSP12/emusp12-bd/Bassdrum-03.wav") },   // E-mu SP-1200: the boom bap machine
+  "sp12.sd": { kind: "drum", urls: tdm("EmuSP12/emusp12-sd/Snaredrum-04.wav", "EmuSP12/emusp12-sd/Snaredrum-09.wav") },
+  "sp12.hh": { kind: "drum", urls: tdm("EmuSP12/emusp12-hh/Hat Closed-01.wav", "EmuSP12/emusp12-hh/Hat Closed-02.wav") },
+  "sp12.oh": { kind: "drum", urls: tdm("EmuSP12/emusp12-oh/Hhopen1.wav") },
+  "dirt.birds": { kind: "drum", urls: ["000_1", "002_2", "003_3", "005_5", "006_6", "007_7", "008_8"].map(f => `https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/birds/${f}.wav`) },   // field recordings of birds
   "mpc.bd": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-bd/0 Bassdrum.wav") },
   "mpc.sd": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-sd/Snare 1.wav", "AkaiMPC60/akaimpc60-sd/Snare 2.wav", "AkaiMPC60/akaimpc60-sd/Snare 3.wav") },
   "mpc.hh": { kind: "drum", urls: tdm("AkaiMPC60/akaimpc60-hh/Closed Hat.wav") },
@@ -209,23 +247,23 @@ const INST = {
   "vc.clap": { kind: "drum", urls: vcsl(PERC + "/Claps", "Clap_rr1.wav", "Clap_rr2.wav", "Clap_rr3.wav") },
   "vc.cresc": { kind: "drum", urls: vcsl(PERC + "/Suspended Cymbal 1", "susCymb1_cresc_2s.wav") },
   "vc.marimba": { kind: "pitch", notes: Object.fromEntries([["F3", 53], ["C4", 60], ["G4", 67], ["B4", 71], ["F5", 77]].map(([n, m]) => [m, vcsl(PERC + "/Marimba", `Marimba_hit_Outrigger_${n}_soft_01.wav`)[0]])) },
-  "gm.epiano": { kind: "pitch", notes: fluid("electric_piano_1", 48, 79) },
-  "gm.finger": { kind: "pitch", notes: fluid("electric_bass_finger", 28, 55) },
-  "gm.upright": { kind: "pitch", notes: fluid("acoustic_bass", 28, 55) },
+  "gm.epiano": { kind: "pitch", notes: fluid("electric_piano_1", 48, 79, MK) },
+  "gm.finger": { kind: "pitch", notes: fluid("electric_bass_finger", 28, 55, MK) },
+  "gm.upright": { kind: "pitch", notes: fluid("acoustic_bass", 28, 55, MK) },
   "gm.sb1": { kind: "pitch", notes: fluid("synth_bass_1", 24, 50) },
   "gm.sb2": { kind: "pitch", notes: fluid("synth_bass_2", 28, 52) },
   "gm.pad": { kind: "pitch", notes: fluid("pad_2_warm", 45, 74) },
   "gm.poly": { kind: "pitch", notes: fluid("pad_3_polysynth", 45, 76) },
-  "gm.strings": { kind: "pitch", notes: fluid("string_ensemble_1", 45, 79) },
+  "gm.strings": { kind: "pitch", notes: fluid("string_ensemble_1", 45, 79, MK) },
   "gm.saw": { kind: "pitch", notes: fluid("lead_2_sawtooth", 55, 86) },
   "gm.square": { kind: "pitch", notes: fluid("lead_1_square", 60, 88) },
-  "gm.brass": { kind: "pitch", notes: fluid("brass_section", 50, 77) },
-  "gm.accordion": { kind: "pitch", notes: fluid("accordion", 52, 86) },
+  "gm.brass": { kind: "pitch", notes: fluid("brass_section", 50, 77, MK) },
+  "gm.accordion": { kind: "pitch", notes: fluid("accordion", 52, 86, MK) },
   "sal.piano": { kind: "pitch", notes: salamander(43, 81) },
-  "gm.nylon": { kind: "pitch", notes: fluid("acoustic_guitar_nylon", 50, 79) },
-  "gm.organ": { kind: "pitch", notes: fluid("drawbar_organ", 50, 79) },
-  "gm.guitar": { kind: "pitch", notes: fluid("electric_guitar_clean", 52, 86) },
-  "gm.panflute": { kind: "pitch", notes: fluid("pan_flute", 62, 91) },
+  "gm.nylon": { kind: "pitch", notes: fluid("acoustic_guitar_nylon", 50, 79, MK) },
+  "gm.organ": { kind: "pitch", notes: fluid("drawbar_organ", 50, 79, MK) },
+  "gm.guitar": { kind: "pitch", notes: fluid("electric_guitar_clean", 52, 86, MK) },
+  "gm.panflute": { kind: "pitch", notes: fluid("pan_flute", 62, 91, MK) },
   "gm.halo": { kind: "pitch", notes: fluid("pad_7_halo", 45, 76) },
   "909.hhx": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-hh/hh01.wav", "RolandTR909/rolandtr909-hh/hh02.wav", "RolandTR909/rolandtr909-hh/hh03.wav"),
     vars: { open: tdm("RolandTR909/rolandtr909-oh/oh01.wav", "RolandTR909/rolandtr909-oh/oh02.wav") } },
@@ -261,19 +299,19 @@ const INST = {
   "808.toms": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-ht/HT25.WAV"), vars: { mid: tdm("RolandTR808/rolandtr808-mt/MT25.WAV"), low: tdm("RolandTR808/rolandtr808-lt/LT25.WAV") } },
   "808.boom": { kind: "drum", urls: tdm("RolandTR808/rolandtr808-bd/BD5075.WAV") },
   "909.toms": { kind: "drum", urls: tdm("RolandTR909/rolandtr909-ht/ht01.wav"), vars: { mid: tdm("RolandTR909/rolandtr909-mt/mt01.wav"), low: tdm("RolandTR909/rolandtr909-lt/lt01.wav") } },
-  "gm.slap": { kind: "pitch", notes: fluid("slap_bass_1", 28, 55) },
-  "gm.mutegtr": { kind: "pitch", notes: fluid("electric_guitar_muted", 50, 79) },
+  "gm.slap": { kind: "pitch", notes: fluid("slap_bass_1", 28, 55, MK) },
+  "gm.mutegtr": { kind: "pitch", notes: fluid("electric_guitar_muted", 50, 79, MK) },
   "gm.orch": { kind: "pitch", notes: fluid("orchestra_hit", 52, 79) },
   "gm.sbrass": { kind: "pitch", notes: fluid("synth_brass_1", 50, 79) },
-  "gm.dx": { kind: "pitch", notes: fluid("electric_piano_2", 50, 79) },
-  "gm.clav": { kind: "pitch", notes: fluid("clavinet", 50, 79) },
-  "gm.oohs": { kind: "pitch", notes: fluid("voice_oohs", 55, 79) },
-  "gm.mtrumpet": { kind: "pitch", notes: fluid("muted_trumpet", 58, 82) },
-  "gm.steel": { kind: "pitch", notes: fluid("steel_drums", 60, 84) },
+  "gm.dx": { kind: "pitch", notes: fluid("electric_piano_2", 50, 79, MK) },
+  "gm.clav": { kind: "pitch", notes: fluid("clavinet", 50, 79, MK) },
+  "gm.oohs": { kind: "pitch", notes: fluid("voice_oohs", 55, 79, MK) },
+  "gm.mtrumpet": { kind: "pitch", notes: fluid("muted_trumpet", 58, 82, MK) },
+  "gm.steel": { kind: "pitch", notes: fluid("steel_drums", 60, 84, MK) },
   "gm.sstrings": { kind: "pitch", notes: fluid("synth_strings_1", 48, 79) },
-  "gm.vibes": { kind: "pitch", notes: fluid("vibraphone", 55, 86) },
-  "gm.flute": { kind: "pitch", notes: fluid("flute", 65, 91) },
-  "gm.quena": { kind: "pitch", notes: fluid("shakuhachi", 62, 91) },
+  "gm.vibes": { kind: "pitch", notes: fluid("vibraphone", 55, 86, MK) },
+  "gm.flute": { kind: "pitch", notes: fluid("flute", 65, 91, MK) },
+  "gm.quena": { kind: "pitch", notes: fluid("shakuhachi", 62, 91, MK) },
   "vc.charango": { kind: "pitch", notes: Object.fromEntries([["Str2_Main_D3", 50], ["Str3_Main_E3", 52], ["Str3_Main_G3", 55], ["Str3_Main_A3", 57], ["Str3_Main_B3", 59], ["Str3_Main_D4", 62], ["Str3_Main_E4", 64], ["Str3_Main_G4", 67]]
     .map(([n, m]) => [m, vcsl("Chordophones/Composite Chordophones/Strumstick/Finger", `Strumstick_Finger_${n}_vl3_rr1.wav`)[0]])) },
   "vc.balafon": { kind: "pitch", notes: Object.fromEntries([["F3", 53, "rr1"], ["C4", 60, "rr2"], ["F4", 65, "rr1"], ["F5", 77, "rr1"]].map(([n, m, r]) => [m, vcsl(PERC + "/Balafon/Soft Mallet", `EthnicXylo_softM_${n}_vl3_${r}_Mid.wav`)[0]])) },
@@ -358,7 +396,9 @@ function makeDeckBus() {
   const b = { drums: M.g(1), music: M.g(1), duck: M.g(1), sum: M.g(1), lo: M.f("lowshelf", 180, .7), hi: M.f("highshelf", 3200, .7),
     hpf: M.f("highpass", 20, .8), lpf: M.f("lowpass", 20000, .8), fader: M.g(1) };
   b.music.connect(b.duck); b.duck.connect(b.sum); b.drums.connect(b.sum);
-  b.sum.connect(b.lo); b.lo.connect(b.hi); b.hi.connect(b.hpf); b.hpf.connect(b.lpf); b.lpf.connect(b.fader); b.fader.connect(M.pre);
+  b.mlp = M.f("lowpass", 20000, .7); b.wetR = M.g(0); b.wetD = M.g(0);          // the record's own transformation stage (see morph())
+  b.sum.connect(b.lo); b.lo.connect(b.hi); b.hi.connect(b.hpf); b.hpf.connect(b.lpf); b.lpf.connect(b.mlp); b.mlp.connect(b.fader); b.fader.connect(M.pre);
+  b.fader.connect(b.wetR); b.wetR.connect(M.revIn); b.fader.connect(b.wetD); b.wetD.connect(M.delIn);
   return b;
 }
 /* ---------- one channel per part ---------- */
@@ -522,7 +562,7 @@ const cumbiaBase = {
     lead: accordionLead(),
   } };
 const chicha = {
-  id: "chicha", name: "Chicha", where: "Peru · '60s–'70s", bpm: 96, swing: .52, palette: [[255, 120, 30], [170, 70, 255], [40, 255, 180]], duck: 0, delay: 3 / 16,
+  id: "chicha", name: "Chicha", where: "Peru · '60s–'80s", bpm: 96, swing: .52, palette: [[255, 120, 30], [170, 70, 255], [40, 255, 180]], duck: 0, delay: 3 / 16,
   roll: { role: "perc", var: "low" },
   parts: {
     kick: cumbiaBase.parts.kick,
@@ -540,11 +580,11 @@ const chicha = {
         return c.sec === "intro" || c.sec === "break" ? out.slice(0, 4) : out;
       } },
   } };
-const rebajada = { ...cumbiaBase, id: "rebajada", name: "Rebajada", where: "Monterrey", of: "cumbia", rate: .82, bpm: Math.round(92 * .82), palette: [[170, 90, 255], [255, 60, 140], [60, 120, 255]] };
+const rebajada = { ...cumbiaBase, id: "rebajada", name: "Cumbia rebajada", where: "Monterrey", of: "cumbia", rate: .82, bpm: Math.round(92 * .82), palette: [[170, 90, 255], [255, 60, 140], [60, 120, 255]] };
 /* the new wave: digital cumbia, Andean electronica, Lima's tropical bass, Amazonian chicha-dembow
    (in the spirit of ZZK / Chancha Vía Circuito, Animal Chuki, Dengue Dengue Dengue, Shushupe) */
-const birds = (density = .5, pitch = 88) => ({ synth: "birds", label: "BIRDS", vol: -8, rev: .45, del: .25, pan: .35,
-  gen: c => { const out = []; for (const s of [1, 5, 9, 13]) if (c.R() < density * .5) out.push(nt(s + c.R(), pitch + Math.floor(c.R() * 8), .5, .6)); return out; } });
+const birds = (density = .5) => ({ inst: "dirt.birds", label: "BIRDS", vol: -16, rev: .3, del: .15, pan: .35, hp: 900,   // real birdsong, now and then
+  gen: c => c.bar % 2 || c.R() > density ? [] : [{ s: Math.floor(c.R() * 12), v: .5 + c.R() * .3 }] });
 const quena = (sc, lo, hi, rhythm, salt, o = {}) => ({ inst: "gm.quena", label: o.label || "QUENA", vol: o.vol ?? -9, rev: .35, del: o.del ?? .3, pan: -.1,
   gen: c => { const notes = scaleNotes(c.key, sc, lo, hi), m = c.D["q" + salt] ??= motif(mulberry32(c.D.seed + salt), 5, rhythm), tones = tonesOf(c.ch), ans = c.bar % 2 === 1;
     if (c.sec === "build") return [];
@@ -566,20 +606,6 @@ const digital = {
     lead: quena("harmonic", 69, 88, [0, 3, 6, 10], 71),
     air: birds(.5),
   } };
-const andean = {
-  id: "andean", name: "Andean electronica", where: "Andes · 2010s", bpm: 90, swing: .5, palette: [[255, 200, 90], [90, 200, 160], [200, 120, 255]], duck: .12, delay: 1 / 4, fb: .5,
-  prog: ["Am", "G", "C", "E7"], roll: null, mix: "filter",
-  parts: {
-    kick: { inst: "808.bd", label: "SOFT KICK", vol: -6, lp: 1500, gen: c => drum("x.....x.x.......") },
-    caja: { inst: "vc.frame", label: "FRAME DRUM", vol: -12, rev: .2, gen: c => drum("....h.......h..h", { h: { v: .6, var: "hi" } }) },
-    guiro: { inst: "vc.shaker", label: "CAXIXI", vol: -16, pan: .3, rev: .1, gen: c => drum("o.u.o.u.o.u.o.u.", { o: { v: .5 }, u: { v: .35, var: "up" } }) },
-    perc: { inst: "vc.leguero", label: "BOMBO LEGÜERO", vol: -6, pan: -.15, rev: .15, gen: c => drum("x..x.a..x..x.a..", { x: { v: .8 }, a: { v: .5, var: "aro" } }) },  // a huayno lilt: long–short–short
-    bass: { synth: "reese", label: "DEEP BASS", vol: -7, cut: 420, gen: c => [nt(0, rootIn(c, 33), 7, .75), nt(8, rootIn(c, 33) + 7, 7, .65)] },
-    chords: { inst: "vc.balafon", label: "BALAFON", vol: -9, rev: .25, del: .2, pan: .15,
-      gen: c => { const v = voice(c.ch, 57, 76, null, { max: 3 }), seq = [0, 1, 2, 1, 0, 2, 1, 2]; return [0, 2, 3, 6, 8, 10, 11, 14].map((s, i) => nt(s, v[seq[i] % v.length] + (i % 4 === 3 && v[seq[i] % v.length] < 70 ? 12 : 0), 1, i % 2 ? .5 : .65)); } },
-    lead: quena("penta", 69, 88, [0, 4, 8, 12], 72, { label: "QUENA", del: .4 }),
-    air: birds(.8),
-  } };
 const tropical = {
   id: "tropical", name: "Tropical bass", where: "Lima · 2010s", bpm: 104, swing: .5, palette: [[220, 40, 70], [80, 50, 230], [255, 140, 40]], duck: .3, delay: 3 / 16, fb: .5,
   prog: ["Am", "Am", "F", "E7"], roll: { role: "caja", var: "slap" },
@@ -595,22 +621,7 @@ const tropical = {
         return m.map((x, i) => nt(x.s, sc[(x.d + c.pass) % sc.length], i === 3 ? 4 : 1.6, .7)); } },
     air: { inst: "gm.oohs", label: "VOICES", vol: -14, rev: .5, del: .3, gen: c => c.bar % 4 ? [] : [nt(0, c.D.vv = voice(c.ch, 52, 67, c.D.vv, { max: 3 }), 12, .5, { att: .8 })] },
   } };
-const selva = {
-  id: "selva", name: "Selva bass", where: "Peruvian Amazon · 2010s", bpm: 104, swing: .5, palette: [[60, 255, 140], [255, 220, 40], [255, 60, 120]], duck: .25, delay: 3 / 16, fb: .45,
-  prog: ["Am", "Dm", "E7", "Am"], roll: { role: "caja" },
-  parts: {
-    kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: fourFloor },
-    caja: { inst: "vc.timbal", label: "DEMBOW TIMBAL", vol: -8, rev: .1, gen: c => drum(c.sec === "drop" ? "...x..x.x..x..x." : "...x..x....x..x.") },
-    guiro: guiroPart,
-    perc: { inst: "vc.slit", label: "LOG DRUM", vol: -12, pan: -.25, rev: .12, gen: c => drum("x.l...x.l.x.l...", { x: { v: .7 }, l: { v: .7, var: "lo" } }) },
-    bass: { synth: "sub808", label: "808 BASS", vol: -3, gen: c => { const r = rootIn(c, 33); return [nt(0, r, 2.5, .9), nt(3, r, 1, .6), nt(6, r, 2, .75), nt(11, r + 7, 1, .6), nt(14, r + 12, 1.5, .65, { slide: true })]; } },
-    chords: { inst: "gm.guitar", label: "AMAZON GUITAR", vol: -11, rev: .18, del: .2, pan: .2,
-      gen: c => { const v = voice(c.ch, 60, 76, null, { max: 3 }), seq = [0, 2, 1, 2, 0, 2, 1, 2]; return [0, 2, 4, 6, 8, 10, 12, 14].map((s, i) => nt(s, v[seq[i] % v.length], .9, i % 4 ? .5 : .66)); } },
-    lead: { inst: "gm.square", label: "SYNTH BLEEPS", vol: -15, del: .35, lp: 3500, gen: c => { const sc = scaleNotes(c.key, "harmonic", 76, 92), m = c.D.sb ??= motif(mulberry32(c.D.seed + 74), 6, [1, 3, 7, 9, 13]);
-      return c.sec === "intro" ? [] : m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], .4, .55)); } },
-    air: birds(.9, 91),
-  } };
-CUMBIA.subs = [cumbiaBase, chicha, rebajada, digital, andean, tropical, selva];
+CUMBIA.subs = [cumbiaBase, chicha, rebajada, digital, tropical];
 
 /* ---------- house ---------- */
 const HOUSE = {
@@ -637,7 +648,7 @@ const chicago = {
     lead: { inst: "gm.organ", label: "ORGAN", vol: -14, rev: .15, gen: c => { const sc = scaleNotes(c.key, "penta", 72, 86), m = c.D.mo ??= motif(mulberry32(c.D.seed + 9), 5, [0, 3, 6, 10, 12]); return m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], 1.2, .6)); } },
   } };
 const deep = {
-  id: "deep", name: "Deep house", where: "Chicago → New York · late '80s", bpm: 120, swing: .54, palette: [[255, 170, 90], [150, 90, 255], [255, 90, 140]], duck: .3, delay: 3 / 16,
+  id: "deep", name: "Deep house", where: "Chicago · mid-'80s", bpm: 120, swing: .54, palette: [[255, 170, 90], [150, 90, 255], [255, 90, 140]], duck: .3, delay: 3 / 16,
   prog: ["Fm9", "Dbmaj9", "Ebadd9", "Cm9"], roll: { role: "clap" },                // same roots as the family, richer colours
   parts: {
     kick: { inst: "909.bd", label: "909 KICK", vol: -3, gen: fourFloor },
@@ -665,7 +676,7 @@ const acid = {
     chords: null, lead: null,
   } };
 const tech = {
-  id: "tech", name: "Tech house", where: "UK · late '90s", bpm: 126, swing: .52, palette: [[40, 220, 255], [255, 255, 255], [255, 60, 90]], duck: .3, delay: 3 / 16,
+  id: "tech", name: "Tech house", where: "London · '90s", bpm: 126, swing: .52, palette: [[40, 220, 255], [255, 255, 255], [255, 60, 90]], duck: .3, delay: 3 / 16,
   prog: ["Fm"], roll: { role: "clap" },
   parts: {
     kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor },
@@ -689,7 +700,7 @@ const ambient = {
       gen: c => { const sc = scaleNotes(c.key, "minor", 72, 89), m = c.D.mp ??= motif(mulberry32(c.D.seed + 13), 6, [0, 6, 10]); return c.bar % 2 ? [] : m.map(x => nt(x.s, sc[(x.d + c.pass) % sc.length], 4, .5)); } },
   } };
 const minimalH = {
-  id: "minimal", name: "Minimal house", where: "Germany · 2000s", bpm: 124, swing: .54, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
+  id: "minimal", name: "Microhouse", where: "Germany · late '90s–2000s", bpm: 124, swing: .54, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
   prog: ["Fm7"], roll: { role: "clap" },
   parts: {
     kick: { inst: "909.bd", label: "KICK", vol: -2, gen: fourFloor },
@@ -742,7 +753,7 @@ TECHNO.subs = [
       bass: { inst: "gm.sb1", label: "BASS", vol: -5, lp: 800, gen: lineBass(33, [[2, 0, .8, .8], [6, 0, .8, .7], [10, 0, .8, .8], [14, 12, .6, .6]]) },
       chords: { inst: "gm.poly", label: "CHORD STABS", vol: -11, rev: .2, del: .25, gen: stab(55, 69, [[0, .6], [3, .6, .55], [10, .6]]) },
       lead: { inst: "gm.sstrings", label: "STRINGS", vol: -14, rev: .35, gen: padP(57, 76, .6) } } },
-  { id: "minimalt", name: "Minimal techno", where: "Berlin · Cologne · 2000s", bpm: 126, swing: .51, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
+  { id: "minimalt", name: "Minimal techno", where: "Detroit · Berlin · '90s–2000s", bpm: 126, swing: .51, palette: [[235, 238, 245], [120, 130, 150], [255, 60, 80]], duck: .2, delay: 3 / 16, fb: .55,
     roll: { role: "clap" },
     parts: { kick: { inst: "909.bd", label: "KICK", vol: -2, gen: fourFloor },
       clap: { inst: "909.rim", label: "CLICK", vol: -15, pan: .22, rev: .1, del: .08, gen: c => drum(["......x.......x.", "...x......x.....", "......x..x....x.", ".......x.....x.."][(c.bar >> 1) % 4]) },
@@ -768,7 +779,7 @@ TECHNO.subs = [
         gen: c => { const sq = c.D.acid ??= acidSeq(mulberry32(c.D.seed + 3)); if (c.bar % 4 === 0 && c.bar) { const i = Math.floor(c.R() * 16); sq[i] = acidSeq(c.R)[i]; }
           const r = rootIn(c, 33); return sq.flatMap((x, s) => x ? [{ s, n: r + x.d, len: x.len, v: .85, acc: x.acc, slide: x.slide }] : []); } },
       chords: null, lead: null } },
-  { id: "industrial", name: "Industrial techno", where: "Berlin · Birmingham · '90s–2010s", bpm: 134, swing: .5, palette: [[255, 60, 40], [140, 140, 150], [255, 200, 180]], duck: .2, delay: 3 / 16,
+  { id: "industrial", name: "Industrial techno", where: "Detroit · UK · Berlin · '90s–2010s", bpm: 134, swing: .5, palette: [[255, 60, 40], [140, 140, 150], [255, 200, 180]], duck: .2, delay: 3 / 16,
     roll: { role: "clap" },
     parts: { kick: { inst: "909.bd", label: "DISTORTED KICK", vol: -2, drive: 3, lp: 4000, gen: fourFloor },
       clap: { inst: "909.sd", label: "NOISY SNARE", vol: -10, drive: 1.5, rev: .15, gen: Dg("....x.......x...") },
@@ -776,7 +787,7 @@ TECHNO.subs = [
       perc: { inst: "vc.anvil", label: "ANVIL", vol: -14, pan: -.25, rev: .25, gen: Dg("..x.......x..x..") },
       bass: { inst: "gm.sb1", label: "RUMBLE", vol: -5, lp: 260, rev: .25, gen: lineBass(33, [[2, 0, 1.5, .8], [6, 0, 1.5, .7], [10, 0, 1.5, .8], [14, 0, 1.5, .7]]) },
       chords: null, lead: { inst: "vc.brake", label: "BRAKE DRUM", vol: -17, rev: .35, del: .3, gen: c => c.bar % 2 ? [] : drum("......x.........") } } },
-  { id: "tribal", name: "Tribal techno", where: "late '90s", bpm: 132, swing: .5, palette: [[255, 150, 40], [40, 200, 160], [255, 240, 200]], duck: .2, delay: 3 / 16,
+  { id: "tribal", name: "Hardgroove", where: "UK · late '90s", bpm: 132, swing: .5, palette: [[255, 150, 40], [40, 200, 160], [255, 240, 200]], duck: .2, delay: 3 / 16,
     roll: { role: "perc", var: "low" },
     parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -2, gen: fourFloor }, clap: { inst: "909.rim", label: "RIM", vol: -15, gen: Dg("....x.......x...") },
       hats: { inst: "vc.shakerL", label: "SHAKER", vol: -18, pan: .2, gen: Dg("xgogxgogxgogxgog", null, { x: { v: .5 }, o: { v: .4 }, g: { v: .25 } }) },
@@ -814,7 +825,7 @@ DISCO.subs = [
       bass: { inst: "gm.sb1", label: "OCTAVE 16THS", vol: -5, lp: 1400, gen: c => { const r = rootIn(c, 26); return Array.from({ length: 16 }, (_, s) => nt(s, s % 2 ? r + 12 : r, .6, s % 2 ? .75 : .6)); } },
       chords: { inst: "gm.sbrass", label: "SYNTH BRASS", vol: -12, rev: .2, gen: stab(57, 72, [[0, 1.5], [6, .7, .55], [8, 1.5, .6]]) },
       lead: { inst: "gm.sstrings", label: "SYNTH STRINGS", vol: -13, rev: .3, gen: padP(57, 76) } } },
-  { id: "nudisco", name: "Nu-disco", where: "2000s", bpm: 116, swing: .54, palette: [[255, 150, 90], [120, 90, 255], [60, 230, 200]], duck: .25, delay: 3 / 16,
+  { id: "nudisco", name: "Nu-disco", where: "UK · '90s–2000s", bpm: 116, swing: .54, palette: [[255, 150, 90], [120, 90, 255], [60, 230, 200]], duck: .25, delay: 3 / 16,
     roll: { role: "snare" },
     parts: { kick: { inst: "909.bd", label: "KICK", vol: -3, gen: fourFloor }, snare: { inst: "909.cp", label: "CLAP", vol: -10, gen: Dg("....x.......x...") },
       hats: { inst: "909.hhx", label: "HATS", vol: -16, pan: .15, gen: Dg("..O...O...O...O.", "g.O.g.O.g.O.g.O.", OPEN) },
@@ -838,10 +849,10 @@ const HIPHOP = { id: "hiphop", name: "Hip hop", key: 0, keyName: "C minor", role
 const BB_KICKS = ["x.......x.x.....", "x.....x...x.....", "x.......x.x....x", "x..x......x....."];
 const boombap = { id: "boombap", name: "Boom bap", where: "New York · early '90s", bpm: 90, swing: .6, palette: [[255, 220, 170], [230, 60, 50], [255, 150, 60]], duck: 0, delay: 1 / 4,
   roll: { role: "snare" }, sweep: 260,
-  parts: { kick: { inst: "mpc.bd", label: "MPC KICK", vol: -2, gen: c => drum(BB_KICKS[c.bar % 4]) },
-    snare: { inst: "mpc.sd", label: "MPC SNARE", vol: -4, rev: .08, gen: c => drum(c.R() < .3 ? "....x..g....x..." : "....x.......x...") },
-    hats: { inst: "mpc.hh", label: "HATS", vol: -14, pan: .15, gen: Dg("x.o.x.ogx.o.x.o.") },
-    perc: { inst: "mpc.oh", label: "OPEN HAT", vol: -18, pan: .15, gen: c => c.bar % 2 ? drum("..............x.") : [] },
+  parts: { kick: { inst: "sp12.bd", label: "SP-1200 KICK", vol: -2, gen: c => drum(BB_KICKS[c.bar % 4]) },
+    snare: { inst: "sp12.sd", label: "SP-1200 SNARE", vol: -4, rev: .08, gen: c => drum(c.R() < .3 ? "....x..g....x..." : "....x.......x...") },
+    hats: { inst: "sp12.hh", label: "HATS", vol: -14, pan: .15, gen: Dg("x.o.x.ogx.o.x.o.") },
+    perc: { inst: "sp12.oh", label: "OPEN HAT", vol: -18, pan: .15, gen: c => c.bar % 2 ? drum("..............x.") : [] },
     bass: { inst: "gm.upright", label: "UPRIGHT BASS", vol: -4, lp: 1100, gen: c => { const r = rootIn(c, 31), k = BB_KICKS[c.bar % 4], out = [];
       for (let s = 0; s < 16; s++) if (k[s] === "x") out.push(nt(s, s === 0 ? r : s >= 10 ? r + 7 : r + 12, s === 0 ? 3 : 1.6, s === 0 ? .85 : .65)); return out; } },
     keys: { inst: "sal.piano", label: "PIANO CHOPS", vol: -6, lp: 3600, rev: .14, gen: c => { const v = c.D.vk = voice(c.ch, 55, 74, c.D.vk, { rootless: true, max: 4 });
@@ -877,6 +888,15 @@ HIPHOP.subs = [
       bass: { synth: "sub808", label: "808 BASS", vol: -3, gen: c => { const r = rootIn(c, 24); return [nt(0, r, 6, .9), nt(7, r, 2, .7), nt(10, r + (c.bar % 2 ? 12 : 7), 4, .8, { slide: true })]; } },
       keys: { inst: "sal.piano", label: "DARK PIANO", vol: -9, rev: .3, gen: melody("minor", 72, 88, [0, 2, 4, 8, 10], 34, { len: 1.6 }) },
       lead: { inst: "gm.flute", label: "FLUTE", vol: -12, rev: .25, del: .2, gen: c => c.bar % 2 ? [] : melody("penta", 74, 89, [0, 3, 6, 8], 35, { len: 2 })(c) } } },
+  { id: "grime", name: "Grime", where: "East London · early 2000s", bpm: 140, swing: .5, palette: [[255, 92, 80], [180, 50, 40], [255, 200, 190]], duck: .1, delay: 3 / 16, fb: .35,
+    prog: ["Cm", "Cm", "Ab", "G"],
+    parts: { kick: { inst: "808.bd", label: "KICK", vol: -4, gen: c => drum(["x.........x.....", "x.....x...x....."][c.bar % 2]) },
+      snare: { inst: "808.cp", label: "CLAP", vol: -7, gen: Dg("....x.......x...") },
+      hats: { inst: "808.hh", label: "HATS", vol: -17, pan: .1, gen: Dg("x.x...x.x.x...x.") },
+      perc: { inst: "vc.wood", label: "ESKI CLICKS", vol: -16, pan: .25, gen: Dg("..x..x....x..x..") },
+      bass: { synth: "sub808", label: "SUB", vol: -3, gen: c => { const r = rootIn(c, 24); return [nt(0, r, 3, .9), nt(6, r, 2, .75), nt(10, r + 12, 2, .7, { slide: true })]; } },
+      keys: { inst: "gm.strings", label: "STRING STABS", vol: -11, rev: .15, gen: stab(55, 70, [[0, .5], [3, .5, .6], [6, .5, .55]]) },
+      lead: { inst: "gm.square", label: "SQUARE LEAD", vol: -14, del: .15, gen: melody("minor", 67, 84, [0, 3, 6, 8, 11, 14], 141, { len: .5 }) } } },
   { ...boombap, id: "screwed", name: "Chopped & screwed", where: "Houston · '90s (DJ Screw)", of: "boombap", rate: .72, bpm: Math.round(90 * .72), palette: [[150, 60, 255], [255, 60, 160], [60, 60, 180]] },
 ];
 
@@ -927,17 +947,17 @@ BREAKS.subs = [
 
 /* ---------------------------------------------------------------- DEMBOW */
 const DBR = ["kick", "snare", "hats", "perc", "bass", "chords", "lead"];
-const DEMBOW = { id: "dembow", name: "Dembow", key: 7, keyName: "G minor", roles: DBR, crash: "909.cr", prog: ["Gm", "Eb", "Bb", "F"], form: formOf(DBR), subs: [] };
+const DEMBOW = { id: "dembow", name: "Dancehall & dembow", key: 7, keyName: "G minor", roles: DBR, crash: "909.cr", prog: ["Gm", "Eb", "Bb", "F"], form: formOf(DBR), subs: [] };
 const DEMBOW_SN = "...x..x....x..x.";                                    // the dembow: boom … ch-boom … chick
 DEMBOW.subs = [
-  { id: "dancehall", name: "Dancehall", where: "Jamaica · 1990 (\"Dem Bow\")", bpm: 98, swing: .52, palette: [[255, 220, 40], [40, 200, 90], [255, 70, 50]], duck: .1, delay: 3 / 16,
+  { id: "dancehall", name: "Dancehall", where: "Kingston · late '70s", bpm: 98, swing: .52, palette: [[255, 220, 40], [40, 200, 90], [255, 70, 50]], duck: .1, delay: 3 / 16,
     roll: { role: "snare" },
     parts: { kick: { inst: "808.bd", label: "KICK", vol: -3, gen: Dg("x.......x.......", "x...x...x...x...") }, snare: { inst: "808.sd", label: "SNARE", vol: -8, gen: Dg(DEMBOW_SN) },
       hats: { inst: "808.hhx", label: "HATS", vol: -16, gen: Dg("x.x.x.x.x.x.x.x.") }, perc: { inst: "vc.wood", label: "WOODBLOCK", vol: -18, pan: .3, gen: Dg("..x...x...x...x.") },
       bass: { inst: "gm.sb1", label: "BASS", vol: -4, lp: 700, gen: lineBass(31, [[0, 0, 2, .9], [3, 0, .7, .6], [8, 0, 2, .8], [11, 7, .7, .6], [14, 5, .7, .55]]) },
       chords: { inst: "gm.organ", label: "SKANK ORGAN", vol: -14, gen: stab(57, 70, [[2, .5], [6, .5], [10, .5], [14, .5]], { max: 3 }) },
       lead: { inst: "gm.steel", label: "STEEL DRUM", vol: -13, rev: .2, del: .2, gen: melody("minor", 67, 84, [0, 3, 6, 10], 51, { len: 1 }) } } },
-  { id: "reggaeton", name: "Reggaeton", where: "Puerto Rico · 2000s", bpm: 92, swing: .5, palette: [[255, 60, 140], [255, 200, 60], [80, 200, 255]], duck: .15, delay: 3 / 16,
+  { id: "reggaeton", name: "Reggaeton", where: "Puerto Rico · 1990s", bpm: 92, swing: .5, palette: [[255, 60, 140], [255, 200, 60], [80, 200, 255]], duck: .15, delay: 3 / 16,
     roll: { role: "perc", var: "low" },
     parts: { kick: { inst: "808.bd", label: "KICK", vol: -2, gen: fourFloor }, snare: { inst: "808.sd", label: "DEMBOW SNARE", vol: -6, gen: Dg(DEMBOW_SN, "...x..x.x..x..x.") },
       hats: { inst: "808.hhx", label: "HATS", vol: -16, pan: .15, gen: Dg("x.x.x.x.x.x.x.x.", "x.xxx.x.x.xxx.x.") },
@@ -967,7 +987,7 @@ const ER = ["kick", "clap", "hats", "perc", "bass", "chords", "lead"];
 const ELECTRO = { id: "electro", name: "Electro", key: 6, keyName: "F♯ minor", roles: ER, crash: "909.cr", prog: ["F#m"], form: formOf(ER), subs: [] };
 const ELECTRO_K = ["x.....x.x.......", "x.....x...x....."];
 ELECTRO.subs = [
-  { id: "electro", name: "Electro", where: "Detroit · New York · 1982", bpm: 127, swing: .5, palette: [[60, 255, 230], [255, 60, 220], [255, 255, 255]], duck: .1, delay: 3 / 16,
+  { id: "electro", name: "Electro", where: "New York · Detroit · early '80s", bpm: 127, swing: .5, palette: [[60, 255, 230], [255, 60, 220], [255, 255, 255]], duck: .1, delay: 3 / 16,
     roll: { role: "clap" },
     parts: { kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: c => drum(ELECTRO_K[c.bar % 2]) }, clap: { inst: "808.cp", label: "808 CLAP", vol: -7, rev: .12, gen: Dg("....x.......x...") },
       hats: { inst: "808.hhx", label: "808 HATS", vol: -15, gen: Dg("xxxxxxxxxxxxxxOx", null, { x: { v: .4 }, O: { v: .5, var: "open" } }) },
@@ -975,7 +995,7 @@ ELECTRO.subs = [
       bass: { inst: "gm.sb2", label: "SYNTH BASS", vol: -5, lp: 1200, gen: lineBass(30, [[0, 0, .8, .9], [3, 0, .5, .6], [6, 12, .5, .7], [8, 0, .8, .8], [11, 10, .5, .6], [14, 7, .5, .6]]) },
       chords: { inst: "gm.sstrings", label: "SYNTH STABS", vol: -13, rev: .25, gen: stab(57, 72, [[0, 1], [6, 1, .55]]) },
       lead: { inst: "gm.square", label: "ROBOT RIFF", vol: -13, del: .2, gen: melody("minor", 66, 82, [0, 2, 3, 8, 10], 61, { len: .6 }) } } },
-  { id: "electrofunk", name: "Electro-funk", where: "New York · early '80s", bpm: 115, swing: .55, palette: [[255, 170, 40], [255, 60, 120], [120, 220, 255]], duck: 0, delay: 1 / 4,
+  { id: "electrofunk", name: "Boogie", where: "US · late '70s–mid '80s", bpm: 115, swing: .55, palette: [[255, 170, 40], [255, 60, 120], [120, 220, 255]], duck: 0, delay: 1 / 4,
     roll: { role: "clap" },
     parts: { kick: { inst: "808.bd", label: "808 KICK", vol: -2, gen: c => drum(ELECTRO_K[c.bar % 2]) }, clap: { inst: "808.cp", label: "HANDCLAPS", vol: -8, rev: .1, gen: Dg("....x.......x...") },
       hats: { inst: "808.hhx", label: "HATS", vol: -15, gen: Dg("x.x.x.xOx.x.x.xO", null, { x: { v: .45 }, O: { v: .5, var: "open" } }) },
@@ -991,14 +1011,14 @@ ELECTRO.subs = [
       bass: { synth: "sub808", label: "808 SUB", vol: -4, gen: c => { const r = rootIn(c, 30); return [nt(0, r, 5, .9), nt(6, r, 2, .7), nt(8, r + 3, 4, .75, { slide: true })]; } },
       chords: null,
       lead: { inst: "gm.orch", label: "ORCHESTRA HIT", vol: -12, rev: .25, gen: c => c.bar % 2 ? [] : stab(54, 66, [[0, .6, .8], [3, .6, .7]], { max: 3 })(c) } } },
-  { id: "electroclash", name: "Electroclash", where: "Berlin · New York · ~2000", bpm: 128, swing: .5, palette: [[255, 40, 80], [255, 255, 255], [40, 40, 60]], duck: .15, delay: 3 / 16,
+  { id: "electroclash", name: "Electroclash", where: "Munich · New York · late '90s", bpm: 128, swing: .5, palette: [[255, 40, 80], [255, 255, 255], [40, 40, 60]], duck: .15, delay: 3 / 16,
     roll: { role: "clap" },
     parts: { kick: { inst: "linn.bd", label: "LINN KICK", vol: -2, drive: 1.5, gen: fourFloor }, clap: { inst: "linn.cp", label: "LINN CLAP", vol: -8, drive: 1, gen: Dg("....x.......x...") },
       hats: { inst: "linn.hhx", label: "HATS", vol: -15, gen: Dg("x.O.x.O.x.O.x.O.", null, OPEN) }, perc: { inst: "linn.cb", label: "COWBELL", vol: -19, gen: Dg("......x.........") },
       bass: { inst: "gm.sb2", label: "DIRTY SYNTH BASS", vol: -6, lp: 1100, drive: 2, gen: c => { const r = rootIn(c, 30); return [0, 2, 4, 6, 8, 10, 12, 14].map(s => nt(s, s % 4 === 2 ? r + 12 : r, .8, s % 4 ? .6 : .85)); } },
       chords: null,
       lead: { inst: "gm.saw", label: "SAW RIFF", vol: -14, drive: 1, del: .2, gen: melody("minor", 66, 81, [0, 3, 6, 8, 12], 63, { len: .8 }) } } },
-  { id: "electrohouse", name: "Electro house", where: "2000s", bpm: 128, swing: .5, palette: [[60, 160, 255], [255, 255, 255], [255, 60, 200]], duck: .5, delay: 3 / 16,
+  { id: "electrohouse", name: "Electro house", where: "Europe · 2000s", bpm: 128, swing: .5, palette: [[60, 160, 255], [255, 255, 255], [255, 60, 200]], duck: .5, delay: 3 / 16,
     roll: { role: "clap" },
     parts: { kick: { inst: "909.bd", label: "909 KICK", vol: -1, gen: fourFloor }, clap: { inst: "909.cp", label: "CLAP", vol: -8, rev: .1, gen: Dg("....x.......x...") },
       hats: { inst: "909.hhx", label: "HATS", vol: -15, pan: .15, gen: Dg("..O...O...O...O.", "xgOgxgOgxgOgxgOg", OPEN) },
@@ -1012,6 +1032,233 @@ FAMILIES.push(TECHNO, DISCO, HIPHOP, BREAKS, DEMBOW, ELECTRO);
 for (const F of FAMILIES) for (const S of F.subs) S.fam = F;
 
 /* =====================================================================
+   TRIVIA · where each style comes from, who made it and why, then how it sounds. Paraphrased, short, with sources.
+   ===================================================================== */
+const WK = t => ["Wikipedia · " + t.replace(/_/g, " ").replace(/ \(music\)/, ""), "https://en.wikipedia.org/wiki/" + t];
+const SNC_ZZK = ["Sounds and Colours · The story of ZZK Records", "https://soundsandcolours.com/articles/argentina/the-story-of-zzk-records-argentinas-home-of-digital-cumbia-1281/"];
+const SNC_BOOM = ["Sounds and Colours · Peru Boom", "https://soundsandcolours.com/articles/peru/peru-boom-bass-bleeps-bumps-from-perus-electronic-underground-29125/"];
+const TRIVIA = {
+  // ---------- cumbia ----------
+  cumbia: { o: "Caribbean coast of Colombia", y: "colonial roots · 20th-century records",
+    p: ["Cumbia grew on Colombia's Caribbean coast, where African, Indigenous and Spanish traditions met. Some accounts trace it to Afro-Colombian funeral customs. It was danced in couples, the woman traditionally carrying a candle.",
+        "Records, radio and migration carried it across Latin America. When salsa took over Colombia in the '70s, cumbia stayed huge in Mexico, Central America and Peru, and kept turning into new local styles."],
+    s: "A simple, steady rhythm driven by a scraped guacharaca or güiro. Here: bombo on the one, the güiro's long-short-short, congas, a root–fifth bass and accordion in thirds.",
+    src: [WK("Cumbia")] },
+  chicha: { o: "Lima & the Peruvian Amazon", y: "1960s–'80s",
+    p: ["Peruvian cumbia took its nickname from Los Demonios del Mantaro's hit “La Chichera”. In Lima, Los Destellos (formed 1966) brought in electric guitars. In the Amazon's oil-boom towns, Juaneco y Su Combo added Farfisa organ and jungle melodies.",
+        "It became the music of Andean migrants making new lives on the coast, and by the mid-'80s it was Peru's most widespread urban sound. Its songs are about love, and about hardship, displacement and informal work."],
+    s: "Cumbia with Andean pentatonic melodies, played on organ and up to three electric guitars soaked in wah and fuzz, over timbales and congas. There's no accordion.",
+    src: [WK("Peruvian_cumbia")] },
+  rebajada: { o: "Monterrey, Mexico", y: "late 20th century",
+    p: ["Monterrey fell for Colombian music through migrants and imported records. By sound-system man Gabriel Duéñez's own account, a faulty tempo control slowed his Colombian records down, and the dancers asked for more.",
+        "Vendors started selling slowed cassettes, local bands began writing at that tempo, and sonidero crews like Sonido La Changa and Sonido Siboney spread it through Mexico and Central America."],
+    s: "Cumbia at about 76 BPM, slowed like tape, so the pitch drops with the tempo: darker horns and accordion, deeper voices. Here the DJ rides the pitch fader down from cumbia.",
+    src: [WK("Cumbia_rebajada")] },
+  digital: { o: "Buenos Aires, Argentina", y: "2007–2008",
+    p: ["The Zizek club nights in Buenos Aires gave home-studio producers a stage. Grant Dull, Guillermo Canale and Villa Diamante mixed cumbia with hip hop, reggaeton, dancehall and dubstep.",
+        "Their label ZZK named the movement with its first compilation, Cumbia Digital. El Remolón, Tremor, Fauna and Chancha Vía Circuito mixed Colombian cumbia, the city's cumbia villera and traditional Argentine music on home computers. Chancha Vía Circuito's Río Arriba (2010) took its minimal side toward slow, chant-like folklore."],
+    s: "Cumbia's gait on drum machines: a slow, heavy kick and sub bass under folk instruments drenched in dub delay. Here: 808, bombo legüero, güiro, charango strums and a quena line in the echo.",
+    src: [SNC_ZZK, ["Bandcamp Daily · ZZK Records", "https://daily.bandcamp.com/label-profile/zzk-records-label-profile"], WK("Chancha_Vía_Circuito")] },
+  tropical: { o: "Lima, Peru", y: "2010s",
+    p: ["Lima's new club scene rebuilt chicha and cumbia with bass music. Dengue Dengue Dengue (Rafael Pereira and Felipe Salmón), masked and described by the press as “tropical futurism”, threw big parties with the Colectivo Auxiliar collective and label.",
+        "Crews like Terror Negro shared tracks as free MP3s before the Peru Boom compilation (2015). Dengue's Siete Raíces (2016) turned toward Afro-Peruvian percussion and voices."],
+    s: "Dark, slow and heavy: a tresillo kick, cajón, jawbone rattle and log drum over a deep sub, with fragments of chicha guitar lost in a long delay.",
+    src: [SNC_BOOM, ["The Peninsula · Dengue Dengue Dengue", "https://thepeninsulaqatar.com/article/15/06/2016/Peru-electro-duo-travels-in-time,-and-into-roots"]] },
+  // ---------- house ----------
+  chicago: { o: "Chicago, USA", y: "1984",
+    p: ["As disco faded after 1979, Chicago's Black, Latino and gay dance floors kept going. Frankie Knuckles at the Warehouse and Ron Hardy at the Music Box played disco, imports and their own edits. WBMX's Hot Mix 5 put it on the radio.",
+        "Cheap drum machines did the rest. Jesse Saunders' “On and On” (1984) and Chip E.'s “Jack Trax” (1985) were among the first house records, made by DJs for DJs."],
+    s: "Four-on-the-floor on Roland machines, claps on 2 and 4, open hats on the off-beat, octave bass and piano stabs, built to loop through long sets.",
+    src: [WK("Chicago_house")] },
+  deep: { o: "Chicago, USA", y: "1985–86",
+    p: ["Larry Heard, as Mr. Fingers, slowed house down and filled it with jazz and soul. “Mystery of Love” (1985) and “Can You Feel It” (1986) became the template, and Marshall Jefferson was another pioneer.",
+        "It brought back the gospel, Latin and R&B soul under house. A second wave in the early '90s kept it alive as the sound of late-night floors."],
+    s: "110–125 BPM, muted bass, spacious 909 percussion, soft pads and rich extended chords. Here: rim, shaker, finger bass and Rhodes 9ths.",
+    src: [WK("Deep_house")] },
+  acid: { o: "Chicago, USA", y: "1987",
+    p: ["Phuture twisted the knobs of Roland's TB-303, a bass machine that had flopped, and made “Acid Tracks”. Ron Hardy played it over and over at the Music Box. The name “acid” stuck, though where it came from is disputed.",
+        "In 1987–88 it exploded in Britain, with London clubs like Shoom, the Second Summer of Love and the smiley face. Police crackdowns pushed parties into warehouses: rave was born."],
+    s: "A bare four-on-the-floor beat and one 303 line, with accents, slides and a resonant filter opened and closed by hand. Usually instrumental, with no chords.",
+    src: [WK("Acid_house")] },
+  tech: { o: "London, UK", y: "mid-to-late '90s",
+    p: ["London nights like The Drop, Heart & Soul and Wiggle, then The End club, put techno's drive into house grooves. Mr C, Terry Francis and Nathan Coles were the key names.",
+        "It spread across Europe in the 2000s, with Spain a stronghold and Dirtybird carrying it in the US. Fisher's “Losing It” (2018) made it a festival staple."],
+    s: "Tight, punchy kicks, quick 16th hats, rim syncopations and a rolling one-note bass. Chords are rare; the groove is everything.",
+    src: [WK("Tech_house")] },
+  ambient: { o: "London, UK", y: "1989–90",
+    p: ["It was born in the chill-out rooms of acid house. Alex Paterson's sets in the White Room at Heaven, soft music with projections, became The Orb. The KLF's Chill Out (1990) imagined a night drive.",
+        "It was music for the morning after, for lying down rather than dancing. Global Communication's 76:14 (1994) is a landmark."],
+    s: "A midtempo four-on-the-floor, long pads, slowly shifting arpeggios and drifting samples in reverb. Here: soft kick, shaker, long bass and sparse piano, mixed with filters.",
+    src: [WK("Ambient_house")] },
+  minimal: { o: "Frankfurt & Cologne, Germany", y: "late '90s–2000s",
+    p: ["Producers on German labels like Kompakt (Cologne), Perlon and Playhouse (Frankfurt) built house out of tiny sounds. Germany's Jan Jelinek, Montreal's Akufen and Finland's Luomo were key artists.",
+        "Journalist Philip Sherburne named it in The Wire in 2001. It rode the mid-2000s minimal boom while staying half underground."],
+    s: "115–130 BPM, where clicks, static and glitches stand in for kicks and hats. Here: rotating clicks, wood ticks, bass blips and one dub stab every two bars.",
+    src: [WK("Microhouse")] },
+  // ---------- techno ----------
+  detroit: { o: "Detroit, USA", y: "mid-1980s",
+    p: ["Three friends from Belleville, Juan Atkins, Derrick May and Kevin Saunderson, fused Kraftwerk's machines with Parliament-Funkadelic's funk in their basements. The Electrifying Mojo played them on the radio.",
+        "It was the sound of post-industrial Detroit. May's “Strings of Life” (1987) and the Techno! compilation (1988) took it to Britain. Underground Resistance gave it a militant, independent voice."],
+    s: "Futuristic, machine-made and soulful: drum machines, synth strings and minor chords at around 125–130 BPM.",
+    src: [WK("Detroit_techno")] },
+  minimalt: { o: "Detroit → Berlin", y: "early '90s",
+    p: ["After rave made techno faster and louder, Detroit's Robert Hood and Daniel Bell stripped it back to its funk. Some writers credit Berlin's Basic Channel as well.",
+        "In the 2000s labels like Cologne's Kompakt, Perlon and Richie Hawtin's M-nus popularised it in Germany, and Berlin's clubs became its home."],
+    s: "Stripped, repetitive and rhythmic, at 125–130 BPM on an 808 or 909. With so few sounds and such slow changes, a tiny shift becomes an event.",
+    src: [WK("Minimal_techno")] },
+  dubtechno: { o: "Berlin, Germany", y: "1993",
+    p: ["After the Wall fell, empty buildings gave Berlin's ravers room to experiment. Moritz von Oswald and Mark Ernestus, of the Hard Wax record shop, started Basic Channel, then Chain Reaction.",
+        "It closed a rare loop between Europe and the Caribbean: Jamaican dub's echo chamber applied to Detroit techno."],
+    s: "110–125 BPM and deep bass, with one sparse chord thrown into long echoes. Meditative and foggy. The DJ mixes it in and out with filters.",
+    src: [WK("Dub_techno")] },
+  acidt: { o: "London, UK", y: "early-to-mid '90s",
+    p: ["Younger producers took Chicago's squelching 303 into harder techno. In London it grew through a network of illegal parties, with the Liberators, D.A.V.E. the Drummer, The Geezer and DDR.",
+        "Richie Hawtin, Aphex Twin, Dave Clarke and Hardfloor were early champions. A 1997 compilation subtitled The Sound of London's Acid Techno Underground put the scene on record."],
+    s: "Hard, fast four-on-the-floor around 135 BPM, and a 303 screaming with high resonance and a low cutoff. No chords.",
+    src: [WK("Acid_techno")] },
+  industrial: { o: "Detroit · UK · Berlin", y: "1990s · revival 2010s",
+    p: ["Techno met the noise of Throbbing Gristle and Cabaret Voltaire. Jeff Mills' Final Cut and the Wax Trax! label laid the ground, and Regis and Surgeon built a raw, hard sound in the '90s.",
+        "It came back in the 2010s through Perc Trax, Ancient Methods, Adam X and Orphx, and the dark warehouse floors of Berlin."],
+    s: "Distorted kicks, metallic hits and noise, with little melody. Here: an overdriven kick, an anvil and a brake drum.",
+    src: [WK("Industrial_techno")] },
+  tribal: { o: "UK", y: "mid-to-late '90s",
+    p: ["Hardgroove came from old hip hop and funk DJ habits: stretching a record's best section and looping the drums to keep people dancing. DJ and label owner Ben Sims is credited with naming it, around 1996.",
+        "Sims wanted a heavier alternative to the loose “techno” label of the mid-'90s, drawing on Todd Terry and Jeff Mills, and his late-'90s mixtapes formalised the sound. He has since criticised the name being used for any loop-based track."],
+    s: "A heavy, punchy kick, syncopated percussion that often includes world-music drums, and a tight, funky bass, with minimal melody. Here: toms in 3-3-2, congas and shakers over a 909 kick at about 132 BPM.",
+    src: [["MusicRadar · Exploring the hardgroove genre", "https://www.musicradar.com/tutorials/music-production-tutorials/calling-anything-with-a-loop-or-sample-in-it-hardgroove-is-kinda-annoying-and-often-misunderstands-what-the-sound-actually-is-exploring-the-hardgroove-genre"]] },
+  // ---------- disco ----------
+  disco: { o: "New York, USA", y: "early 1970s",
+    p: ["Disco grew in the clubs of Black, Latino, Italian-American and gay New Yorkers. David Mancuso's Loft and Larry Levan's Paradise Garage made the DJ an artist; Studio 54 made it glamorous.",
+        "It ruled the charts until the backlash of Disco Demolition Night (Chicago, 12 July 1979). Underground, it lived on as house and garage."],
+    s: "Four-on-the-floor, open hats on the off-beat, syncopated octave basslines, strings, horns and rhythm-guitar chops.",
+    src: [WK("Disco")] },
+  italo: { o: "Italy", y: "late '70s–'80s",
+    p: ["When disco collapsed in America, Europe kept dancing. Italian producers made it electronic, with drum machines, synths and vocoders, mostly sung in English. Germany's ZYX label began licensing it abroad in 1982, and the “Italo disco” tag spread from 1983.",
+        "Hits like Ryan Paris' “Dolce Vita” and Baltimora's “Tarzan Boy” filled European floors, and imports helped shape early house."],
+    s: "Drum machines (here a LinnDrum), a galloping synth bass, bright electric pianos and catchy melodies around 120 BPM.",
+    src: [WK("Italo_disco")] },
+  hinrg: { o: "San Francisco · New York · UK", y: "late '70s–early '80s",
+    p: ["Donna Summer and Giorgio Moroder's “I Feel Love” (1977) pointed the way. Patrick Cowley in San Francisco and Bobby Orlando in New York made fast synth records for the gay clubs that embraced them.",
+        "In Britain, Stock Aitken Waterman turned it into pop with Dead or Alive's “You Spin Me Round” and Bananarama's “Venus”."],
+    s: "120–140 BPM, staccato hats, four-on-the-floor and pulsing octave basslines in 16ths. Less funky than disco, more relentless.",
+    src: [WK("Hi-NRG")] },
+  nudisco: { o: "London → Norway", y: "mid-'90s–2000s",
+    p: ["It grew from the disco edits DJs had made since the '70s. In mid-'90s London, Nuphonic, Black Cock Records, DJ Harvey and the Idjut Boys re-cut old records, and the name was in print by 1996.",
+        "Daft Punk and Norway's Lindstrøm took it further in the 2000s. It faded behind electro house, then returned in the 2010s."],
+    s: "Four-on-the-floor with live-sounding bass and guitar riffs, and long evolving sections instead of verses. Here: slap bass and Rhodes at 116.",
+    src: [WK("Nu-disco")] },
+  frenchtouch: { o: "Paris, France", y: "mid-'90s",
+    p: ["Daft Punk, Cassius, Stardust, Motorbass and Bob Sinclar looped Euro disco and funk, and Thomas Bangalter's label Roulé released many early tracks. Journalist Martin James popularised the name “French touch” in 1996.",
+        "By 1997 it was a worldwide success, with Motorbass' Pansoul (1996) among its most influential records."],
+    s: "A disco sample under a filter and phaser that open and close over long stretches, with heavy sidechain. Here the filter breathes over eight bars.",
+    src: [WK("French_house")] },
+  // ---------- hip hop ----------
+  boombap: { o: "New York, USA", y: "late '80s–early '90s",
+    p: ["Boom bap was the sound of East Coast hip hop's golden age. Marley Marl, DJ Premier and Pete Rock built beats on SP-1200 and MPC samplers from funk and jazz records.",
+        "It's named after its kick (“boom”) and snare (“bap”), a phrase T La Rock used in 1984 and KRS-One made famous in 1993. The lyrics spoke of Black urban life in New York."],
+    s: "Kick on 1 and 3, snare on 2 and 4, swung hats and chopped samples, leaving room for the voice. Around 90 BPM.",
+    src: [WK("Boom_bap")] },
+  jazzhop: { o: "New York, USA", y: "late '80s–early '90s",
+    p: ["The Native Tongues collective, with A Tribe Called Quest and De La Soul, sampled Blue Note records alongside Gang Starr and Digable Planets. It offered an alternative to gangsta and pop rap.",
+        "Guru's Jazzmatazz (1993) brought live jazz players into the studio."],
+    s: "Boom bap grooves with jazz harmony: walking double bass, Rhodes 7ths and 9ths, a muted trumpet.",
+    src: [WK("Jazz_rap")] },
+  lofi: { o: "the internet", y: "2010s",
+    p: ["It grew from the 2000s beat scene and its SP-303 and SP-404 samplers. J Dilla, Madlib and Japan's Nujabes, whose Samurai Champloo soundtrack is a touchstone, are its heroes.",
+        "From 2017, round-the-clock YouTube streams like ChilledCow, now Lofi Girl, made it the world's study soundtrack. Audiences grew sharply during the 2020 lockdowns."],
+    s: "Slow, lazy beats with vinyl hiss and fuzz, and mellow piano or guitar. Here: 80 BPM, a lazy snare, felt piano and vibes.",
+    src: [WK("Lo-fi_hip_hop"), WK("Lofi_Girl")] },
+  trap: { o: "Atlanta, USA", y: "1990s–2000s",
+    p: ["Trap is named after the “trap house” where drugs are sold. In Atlanta, producers DJ Toomp, Shawty Redd and Zaytoven, and rappers T.I., Young Jeezy and Gucci Mane, told stories of street life and ambition.",
+        "Lex Luger shaped the modern sound around 2010. From there it took over pop."],
+    s: "A half-time feel, an 808 sub with long glides, and crisp hats rolling in 32nds and triplets. Here: 70 BPM with a flute.",
+    src: [WK("Trap_music")] },
+  screwed: { o: "Houston, USA", y: "early '90s",
+    p: ["DJ Screw, of Houston's south side, slowed records on his turntables until they felt heavy and mellow. Then he chopped and repeated lines and added shout-outs for his local audience.",
+        "His tapes spread hand to hand. The style became linked with lean, a codeine syrup, though Screw said no drugs were needed to enjoy it."],
+    s: "60–70 BPM, with the pitch dropping as the record slows, plus skipped beats, stop-time and repeated words. Here the DJ slows boom bap ×0.72 on the pitch fader.",
+    src: [WK("Chopped_and_screwed")] },
+  grime: { o: "East London, UK", y: "early 2000s",
+    p: ["Grime grew out of UK garage, with jungle, dancehall and hip hop in its blood. Pirate stations like Rinse FM and Deja Vu gave its MCs their first audiences. Wiley, its “godfather”, made “Eskimo”, often called the first grime record.",
+        "Dizzee Rascal's Boy in da Corner won the 2003 Mercury Prize. Roll Deep, Kano, Skepta and JME followed. Police risk form 696 shut many nights from 2005, then Stormzy led a revival in the mid-2010s. It's often compared with hip hop but counted as its own genre."],
+    s: "Around 140 BPM, with rapid, syncopated beats, jagged electronic textures, video-game sounds and a heavy low bass, all built for the MC. Here: clicks, string stabs and a square-wave lead.",
+    src: [WK("Grime_music")] },
+  // ---------- breaks & bass ----------
+  breakbeat: { o: "the Bronx → UK", y: "1973 → '90s",
+    p: ["From 1973, DJ Kool Herc looped the drum breaks of funk records for Bronx dancers, laying the root of hip hop. The Amen and Funky Drummer breaks became among the most sampled drums ever.",
+        "Cheap samplers brought breaks into UK rave. In the '90s, The Chemical Brothers, The Prodigy and Fatboy Slim made big beat, and nu skool breaks followed."],
+    s: "Syncopated, shifting drum patterns instead of a steady kick, anywhere from 110 to 175 BPM. Here: a chopped break at 130.",
+    src: [WK("Breakbeat")] },
+  ukg: { o: "London, UK", y: "mid-'90s",
+    p: ["London sped up New York garage house to match jungle's energy, the speed garage of around 1994. Then it took out kicks for the shuffle of 2-step, adding ragga and R&B.",
+        "Pirate radio carried it and the clubs dressed up. Around 2000–01 the Artful Dodger, Craig David, MJ Cole and So Solid Crew topped the charts."],
+    s: "Around 130 BPM, with skipped kicks, shuffled hats, swing and chopped vocals over an organ.",
+    src: [WK("UK_garage")] },
+  jungle: { o: "London, UK", y: "early '90s",
+    p: ["Jungle grew out of rave's breakbeat hardcore, fed by Jamaican sound-system culture. Pirate stations like Kool FM spread it before Kiss and Radio 1 caught on in 1994–95.",
+        "It spoke to Black British youth in post-Thatcher London, a homegrown answer to hip hop. With Rebel MC, Shy FX, Congo Natty and Goldie, it led straight into drum & bass."],
+    s: "Chopped, fast breakbeats, often the Amen, at 160–170 BPM over half-speed dub basslines.",
+    src: [WK("Jungle_music")] },
+  liquid: { o: "UK", y: "1999 → 2000s",
+    p: ["Fabio and Sarah Sandy's 1999 compilation Liquid Funk gave it a name. LTJ Bukem's Good Looking and Hospital Records gave it a home, and Calibre became one of its masters.",
+        "Shaped by jazz and soul, it worked at home as well as in the club. By 2005 it was among drum & bass's best-selling styles."],
+    s: "Drum & bass at 174 with warm, soulful harmony and a rolling bass. Here: a reese bass and Rhodes.",
+    src: [WK("Liquid_funk")] },
+  dubstep: { o: "Croydon, South London", y: "early 2000s",
+    p: ["Big Apple Records in Croydon was the meeting point for Skream, Benga and Digital Mystikz. The FWD>> club night (from 2001) and the pirate station Rinse FM tested their dark, garage-born dubs.",
+        "Kode9 and Burial took it somewhere stranger, and Burial's 2006 debut became a landmark. In America, Skrillex's harsher brostep took it to arenas and festivals."],
+    s: "Around 140 BPM, with a half-time snare on beat 3, a sub bass and the wobble of a swept filter. Lots of space.",
+    src: [WK("Dubstep")] },
+  // ---------- dembow ----------
+  dancehall: { o: "Kingston, Jamaica", y: "late 1970s",
+    p: ["Dancehall was born in the dances of working-class inner-city Kingston, around sound systems whose bass you felt before you heard it. Deejays toasted over shared instrumental riddims.",
+        "King Jammy's “(Under Me) Sleng Teng” (1985), sung by Wayne Smith, made the riddim digital. Shabba Ranks' “Dem Bow” (1990), produced by Bobby Digital on a Steely & Clevie riddim, gave its name to the beat reggaeton would build on."],
+    s: "Riddim first: a drum-machine kick, a syncopated snare and a deep bass, around 90–100 BPM. Here the snare plays the dembow pattern, the family's common thread.",
+    src: [WK("Dancehall"), WK("Dem_Bow"), ["Berklee · What is dembow?", "https://college.berklee.edu/news/what-is-dembow-tracing-the-roots-of-a-global-phenomenon"]] },
+  reggaeton: { o: "Panama → Puerto Rico", y: "late '80s–'90s",
+    p: ["Reggae en español began in Panama, brought by descendants of Caribbean canal workers. In early-'90s Puerto Rico, DJ Playero and DJ Negro's underground mixtapes fused it with hip hop.",
+        "In 1995 authorities confiscated tapes under obscenity laws and schools banned it, until Daddy Yankee's “Gasolina” (2004) took it worldwide. Tego Calderón made it a voice of Afro-Latino identity."],
+    s: "The dembow beat: a steady kick on every beat, the snare in 3+3+2, an 808 sub and timbal fills, at 90–95 BPM.",
+    src: [WK("Reggaeton")] },
+  moombahton: { o: "Washington, D.C., USA", y: "2009",
+    p: ["Dave Nada was DJing his cousin's high-school party, where the kids wanted reggaeton and bachata. He slowed Afrojack's remix of “Moombah” from 128 to 108 BPM, and the floor went for it.",
+        "He named it, half “Moombah”, half reggaeton, and a 2010 EP spread it."],
+    s: "100–110 BPM: house sounds on a reggaeton bounce, with a thick, spread bass, dembow percussion, quick fills and builds.",
+    src: [WK("Moombahton")] },
+  dominican: { o: "Dominican Republic", y: "2000s",
+    p: ["As Puerto Rican reggaeton turned romantic and melodic, Dominican producers kept it raw and fast. A local love of fast merengue may explain the tempo.",
+        "Dembowseros like El Alfa, Chimbala, Rochy RD and Tokischa took it from the streets to global charts."],
+    s: "A faster, harder, stripped-down dembow loop under shouted call-and-response.",
+    src: [WK("Dominican_dembow"), ["Berklee · What is dembow?", "https://college.berklee.edu/news/what-is-dembow-tracing-the-roots-of-a-global-phenomenon"]] },
+  // ---------- electro ----------
+  electro: { o: "New York · Detroit", y: "1982",
+    p: ["As disco faded, the machine pop of Kraftwerk and Yellow Magic Orchestra met funk and early hip hop. Afrika Bambaataa & the Soulsonic Force's “Planet Rock” (1982), produced by Arthur Baker, was the turning point, while Cybotron was building it in parallel in Detroit.",
+        "It seeded Miami bass, freestyle, Detroit techno and breakbeat. Later, Drexciya turned it into a sci-fi myth."],
+    s: "TR-808 beats, a robotic synth bass and vocoder voices, with rhythm before song. Here: an 808 and a robot riff at 127.",
+    src: [WK("Electro_(music)"), WK("Cybotron_(American_band)")] },
+  electrofunk: { o: "United States", y: "late '70s–mid '80s",
+    p: ["Boogie was R&B's dance floor after disco: post-disco grooves made with both live and electronic instruments, with the vocals and studio effects up front. Kashif, D. Train, Sharon Redd and Zapp, on labels like Prelude and West End, defined it.",
+        "In London, DJs Norman Jay and Dez Parkes spread the name through underground clubs playing US imports. Boogie fed electro, as drum machines replaced the bass guitar, and house."],
+    s: "Mid-tempo, about 110–116 BPM, with the weight on beats 2 and 4 rather than disco's four-on-the-floor: slap bass, handclaps and synthesizers. Here at 115 with a clavinet.",
+    src: [WK("Boogie_(genre)")] },
+  miami: { o: "Miami, USA", y: "mid-1980s",
+    p: ["Miami bass was the city's take on electro, by Amos Larkins, Maggotron and above all Luther Campbell's 2 Live Crew, made for car stereos and dance floors.",
+        "A federal judge ruled 2 Live Crew's As Nasty As They Wanna Be (1989) obscene in 1990. Band members were arrested and acquitted, and the ruling was overturned on appeal in 1992."],
+    s: "An 808 with long booming kicks, heavy bass and stop-start breaks at a fast tempo (here 130), plus orchestra hits.",
+    src: [WK("Miami_bass"), WK("As_Nasty_As_They_Wanna_Be")] },
+  electroclash: { o: "Munich → Berlin · New York", y: "late '90s–2001",
+    p: ["DJ Hell's Munich label International DeeJay Gigolo brought back '80s electro, new wave and synth-pop with attitude. Miss Kittin & The Hacker, Peaches and Fischerspooner were its stars.",
+        "Larry Tee named it with a New York festival in 2001. It put songs, theatre and humour above techno's seriousness."],
+    s: "Retro synths, distorted drum machines (here a LinnDrum), dirty bass and deadpan or vocoded voices, around 128 BPM.",
+    src: [WK("Electroclash")] },
+  electrohouse: { o: "Europe → North America", y: "early-to-mid 2000s",
+    p: ["Benny Benassi's “Satisfaction” (2002) set the template, and in Paris, Ed Banger's Justice followed Daft Punk's lead. By 2006 it was everywhere.",
+        "It was a loud, party-first answer to minimal and tech house. Deadmau5 took it across North America and laid the ground for EDM."],
+    s: "Buzzing sawtooth bass, a big four-on-the-floor kick and riffs, at 125–135 BPM. Here: saw bass and supersaw stabs at 128.",
+    src: [WK("Electro_house")] },
+};
+
+/* =====================================================================
    THE DECKS AND THE DJ · one clock, two decks. Each deck plays a subgenre through its own EQ, filters and fader.
    Pick another style and the mix starts on the next bar, by itself, the way a DJ would do it:
    - BLEND (close tempos, same family): beat-matched; the new track comes in with its lows cut and highs down, the fader rides
@@ -1023,8 +1270,8 @@ for (const F of FAMILIES) for (const S of F.subs) S.fam = F;
    - CUT ON THE ONE (tempos too far apart, or another family): the new track drops on the downbeat; the old one has its
      lows pulled and fades within the bar.
    The song never restarts: the incoming record joins at the bar the outgoing one is on (same section, same bar), so the
-   structure runs straight through the mix; a mix is timed to finish by the next drop, and the build, the beat of silence
-   and the drop are played by the incoming record.
+   structure runs straight through the mix; a mix is timed to finish by the next return, and the incoming record plays the
+   break, its transformation and the return.
    ===================================================================== */
 let FAM = FAMILIES[0], seed = 1, decks = [], cur = null, mix = null, mixReq = null, pending = null, deckIds = 0;
 let clockBar = 0, step = 0, nextT = 0, timer = null, playing = false, bpm = 92;
@@ -1034,6 +1281,12 @@ function layout(form) {
   for (const [type, n, spec] of form) {
     const toks = spec.split(/\s+/).filter(Boolean).map(t => { const m = t.match(/^(\w+)([<>])?(\d+)?$/); return { id: m[1], op: m[2], k: +m[3] }; });
     for (let b = 0; b < n; b++) out.push({ sec: type, bib: b, n, last: b === n - 1, act: new Set(toks.filter(t => !t.op || (t.op === ">" ? b >= t.k : b < t.k)).map(t => t.id)) });
+  }
+  // the build is a slow re-assembly, not a roll: from the break, the parts come back one at a time; kick, bass and backbeat wait for the return
+  const brk = out.filter(x => x.sec === "break"), bld = out.filter(x => x.sec === "build"), drp = out.find(x => x.sec === "drop");
+  if (brk.length && bld.length && drp) {
+    const base = brk[brk.length - 1].act, order = [...drp.act].filter(r => !base.has(r) && !["kick", "bass", "snare", "clap", "caja"].includes(r));
+    bld.forEach((x, i) => { x.act = new Set([...base, ...order.slice(0, Math.round((i + 1) / bld.length * order.length))]); });
   }
   return out;
 }
@@ -1053,9 +1306,8 @@ function freeDeck(D, t) { for (const P of Object.values(D.parts)) disposeChannel
 const loaded = new Map();                                  // inst key → bufs (filled by loadSub)
 function bufsSync(k) { return loaded.get(k) || null; }
 async function loadSub(S, onProgress) {
-  await loadAll(subUrls(S).concat(instUrls("vc.cresc"), instUrls(S.fam.crash)), onProgress);
+  await loadAll(subUrls(S), onProgress);
   for (const P of Object.values(S.parts)) if (P?.inst && !loaded.has(P.inst)) loaded.set(P.inst, await bufsOf(P.inst));
-  for (const k of ["vc.cresc", S.fam.crash]) if (!loaded.has(k)) loaded.set(k, await bufsOf(k));
 }
 
 /* ---------- writing one bar of a deck ---------- */
@@ -1068,20 +1320,12 @@ function genBar(D) {
     const P = D.parts[role]; if (!P) return;
     let list = [];
     if (b.act.has(role)) { try { list = P.gen(c) || []; } catch (e) { console.warn(role, e); } }
-    if (b.sec === "build" && lead && S.roll?.role === role) list = roll(b, S.roll.var);
     for (const e of list) {
-      if (b.sec === "build" && b.last && e.s >= 12) continue;                         // the beat of silence (both records)
       ev.push({ ...e, role, p: ri, v: clamp(e.v * (1 + (R() - .5) * .08), 0, 1.3), dt: (R() - .5) * (/conga|guiro|shaker|bongo|cajon/.test(P.inst || "") ? .008 : .004) });
     }
   });
   if (S.parts.bass?.synth === "acid") D.acidCut = 380 + 1600 * (.5 - .5 * Math.cos(TAU * ((D.pos % 16) / 16)));   // the cutoff knob, turned slowly
   return { b, ev, ch: c.ch };
-}
-function roll(b, v) {
-  const left = b.n - b.bib, out = [], div = left >= 4 ? 4 : left === 3 ? 2 : 1;
-  for (let s = 0; s < 16; s += div) out.push({ s, v: .3 + .55 * (1 - left / Math.max(4, b.n)) + s / 80, var: v });
-  if (left === 1) for (let s = 8.5; s < 12; s += 1) out.push({ s, v: .8 + s / 60, var: v });
-  return out;
 }
 function advance(D) {
   D.pos++; if (D.pos >= D.bars.length) { D.pos = secStart(D, "groove"); D.pass++; }
@@ -1096,24 +1340,44 @@ function onBar(t) {
   TL.push({ t0: t, sd, clockBar, decks: entries }); while (TL.length > 6) TL.shift();
   const L = mix ? mix.B : cur, lb = curBars.find(x => x.D === L); if (L && lb) soloEvents(L, lb.B.b, t, sd);
 }
-function soloEvents(D, b, t, sd) {                          // build → silence → drop, on a deck playing alone
-  if (b.sec === "build" && b.bib === 0) {
-    const tSil = t + (b.n * 16 - 4) * sd;
-    M.hp.frequency.cancelScheduledValues(t); M.hp.frequency.setValueAtTime(20, t); M.hp.frequency.exponentialRampToValueAtTime(D.sub.sweep || 650, tSil);
-    const Bc = loaded.get("vc.cresc"); if (Bc?.main.length) { const buf = Bc.main[0], st = Math.max(t, tSil - Math.min(buf.duration, 2.4));
-      const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = buf; gn.gain.value = .3 * (buf._n || 1); src.connect(gn); gn.connect(D.bus.sum); src.start(Math.max(st, ctx.currentTime)); src.stop(tSil + .01); }
+/* ---------- between sections: a transformation of the sound, not a snare roll. Over the break and the build the record
+   changes shape in its own way, then is whole again when the groove returns. No silence, no crash. ---------- */
+const MORPH = {
+  cumbia: "strip", chicha: "strip", rebajada: "wash", digital: "dub", tropical: "dub",
+  chicago: "filter", deep: "wash", acid: "resonant", tech: "filter", ambient: "wash", minimal: "strip",
+  detroit: "filter", minimalt: "strip", dubtechno: "dub", acidt: "resonant", industrial: "resonant", tribal: "strip",
+  disco: "strip", italo: "filter", hinrg: "resonant", nudisco: "filter", frenchtouch: "filter",
+  boombap: "strip", jazzhop: "wash", lofi: "wash", trap: "strip", grime: "strip", screwed: "wash",
+  breakbeat: "filter", ukg: "strip", jungle: "dub", liquid: "wash", dubstep: "dub",
+  dancehall: "dub", reggaeton: "strip", moombahton: "filter", dominican: "strip",
+  electro: "resonant", electrofunk: "strip", miami: "strip", electroclash: "resonant", electrohouse: "filter",
+};
+function soloEvents(D, b, t, sd) {
+  if (b.sec !== "break" || b.bib !== 0) return;
+  const bar = 16 * sd, tBu = t + b.n * bar, tD = tBu + D.bars.filter(x => x.sec === "build").length * bar;
+  const kind = MORPH[D.sub.id] || "strip";
+  morph(D, kind, t, tBu, tD); MARKS.push({ t, type: "morph", kind, end: tD });
+}
+function morph(D, kind, t0, tBu, tD) {
+  const B = D.bus, f = B.mlp.frequency, q = B.mlp.Q, at = Math.max(t0, ctx.currentTime), dn = t0 + (tBu - t0) * .8;
+  const from = (p, v) => { p.cancelScheduledValues(at); p.setValueAtTime(v, at); };
+  const back = () => {                                      // whole again on the return
+    f.exponentialRampToValueAtTime(20000, tD); q.linearRampToValueAtTime(.7, tD);
+    B.wetR.gain.linearRampToValueAtTime(0, tD); B.wetD.gain.linearRampToValueAtTime(0, tD);
+  };
+  from(f, 20000); from(q, .7); from(B.wetR.gain, 0); from(B.wetD.gain, 0);
+  if (kind === "filter") {                                  // the room closes to a muffle, then opens as the parts return
+    f.exponentialRampToValueAtTime(420, dn); q.linearRampToValueAtTime(2, dn); f.setValueAtTime(420, tBu); q.setValueAtTime(2, tBu); back();
+  } else if (kind === "resonant") {                         // the same, through a singing, resonant filter
+    f.exponentialRampToValueAtTime(320, dn); q.linearRampToValueAtTime(6, dn); f.setValueAtTime(320, tBu); q.setValueAtTime(6, tBu); back();
+  } else if (kind === "wash") {                             // the record dissolves into its own reverb and re-forms
+    f.exponentialRampToValueAtTime(1600, dn); B.wetR.gain.linearRampToValueAtTime(1.2, dn); f.setValueAtTime(1600, tBu); B.wetR.gain.setValueAtTime(1.2, tBu); back();
+  } else if (kind === "dub") {                              // everything goes into the echo; the feedback rises, then settles
+    f.exponentialRampToValueAtTime(2600, dn); B.wetD.gain.linearRampToValueAtTime(.9, dn); f.setValueAtTime(2600, tBu); B.wetD.gain.setValueAtTime(.9, tBu); back();
+    M.fb.gain.cancelScheduledValues(at); M.fb.gain.setValueAtTime(M.fb.gain.value, at); M.fb.gain.linearRampToValueAtTime(.68, dn);
+    M.fb.gain.setValueAtTime(.68, tBu); M.fb.gain.linearRampToValueAtTime(D.sub.fb || .38, tD);
   }
-  if (b.sec === "build" && b.last) {
-    const tSil = t + 12 * sd; M.pre.gain.cancelScheduledValues(tSil - .02); M.pre.gain.setValueAtTime(1, tSil - .012); M.pre.gain.linearRampToValueAtTime(0, tSil);
-    MARKS.push({ t: tSil, type: "silence", end: tSil + 4 * sd });
-  }
-  const prev = D.bars[D.pos - 1];
-  if (b.sec === "drop" && b.bib === 0 && prev?.sec === "build") {
-    M.pre.gain.cancelScheduledValues(t - .001); M.pre.gain.setValueAtTime(0, t - .001); M.pre.gain.setValueAtTime(1, t);
-    M.hp.frequency.cancelScheduledValues(t); M.hp.frequency.setValueAtTime(20, t);
-    const Bc = loaded.get(D.fam.crash); if (Bc?.main.length) { const src = ctx.createBufferSource(), gn = ctx.createGain(); src.buffer = Bc.main[0]; gn.gain.value = .5 * (Bc.main[0]._n || 1); src.connect(gn); gn.connect(D.bus.drums); src.start(t); }
-    MARKS.push({ t, type: "drop" });
-  }
+  // "strip": no effect at all, only the arrangement (parts leave in the break and come back one at a time)
 }
 function scheduleStep(t) {
   if (step === 0) onBar(t);
@@ -1138,14 +1402,19 @@ function scheduler() { while (nextT < ctx.currentTime + .12) { const sd = stepDu
 
 /* ---------- the DJ ---------- */
 function mixKind(A, B) {
-  if (A.fam !== B.fam) return "cut";
   if (A.of === B.id || B.of === A.id) return "ride";
-  if (Math.abs(A.bpm - B.bpm) / Math.max(A.bpm, B.bpm) > .09) return "cut";
+  if (A.fam !== B.fam || Math.abs(A.bpm - B.bpm) / Math.max(A.bpm, B.bpm) > .09) return "echo";   // far apart: echo out, filter in, tempo ridden
   if (A.mix === "filter" || B.mix === "filter") return "filter";
   return "blend";
 }
+async function switchNow(S) {                               // paused: no DJ, no waiting for a bar; the new record goes straight on
+  pending = null; mixReq = null; mix = null;
+  for (const D of [...decks]) freeDeck(D, ctx.currentTime);
+  await startWith(S); play(true); save(); ui();
+}
 function requestSub(S) {
   if (!ctx || !cur) return;
+  if (!playing) { if (S !== cur.sub || mix) return switchNow(S); play(true); return; }
   if (S === cur.sub && !mix) return;
   if (mix) { pending = S; ui(); return; }
   const go = () => { mixReq = S; ui(); };
@@ -1153,14 +1422,13 @@ function requestSub(S) {
 }
 function startMix(S, t) {
   const A = cur, kind = mixKind(A.sub, S), sd = stepDur();
-  let toDrop = 0; for (let i = A.pos; toDrop < A.bars.length; i = (i + 1) % A.bars.length, toDrop++) if (A.bars[i].sec === "drop" && A.bars[i].bib === 0) break;
-  const room = toDrop > 0 ? Math.min(8, toDrop) : 8;                                  // finish the mix by the next drop
+  const room = 8;                                           // every mix is long: eight bars to reshape one record into the other
   if (kind === "ride") {                                    // the same record on the pitch fader
-    mix = { kind, A, B: A, start: clockBar, len: 2, fromBpm: bpm, toBpm: S.bpm, fromRate: A.rate, toRate: S.rate || 1, to: S };
+    mix = { kind, A, B: A, start: clockBar, len: 8, fromBpm: bpm, toBpm: S.bpm, fromRate: A.rate, toRate: S.rate || 1, to: S };
     A.sub = S; FAM = S.fam;
   } else {
     const B = newDeck(S); B.pos = joinAt(A, B); B.pass = A.pass; decks.push(B);       // the new record joins the song where it is
-    mix = { kind, A, B, start: clockBar, len: kind === "cut" ? 1 : room, fromBpm: bpm, toBpm: S.bpm };
+    mix = { kind, A, B, start: clockBar, len: kind === "cut" ? 1 : room, fromBpm: bpm, toBpm: S.bpm, to: S };
     if (kind === "cut") bpm = S.bpm;
     eq(B, mixState(kind, "in", 0), t, .005);
   }
@@ -1177,6 +1445,10 @@ function mixStep(t) {
   const u = clamp((clockBar - mix.start + step / 16) / mix.len), sd = stepDur();
   if (mix.kind !== "cut") bpm = lerp(mix.fromBpm, mix.toBpm, smooth(u));
   if (mix.kind === "ride") mix.A.rate = lerp(mix.fromRate, mix.toRate, smooth(u));
+  if (mix.kind === "echo" && step % 4 === 0) {               // the outgoing record is thrown into the echo as it leaves
+    const w = x => .85 * Math.sin(Math.PI * clamp((x - .15) / .7)), du = 4 / 16 / mix.len, p = mix.A.bus.wetD.gain;
+    p.cancelScheduledValues(t); p.setValueAtTime(w(u), t); p.linearRampToValueAtTime(w(Math.min(1, u + du)), t + 4 * sd);
+  }
   if (mix.kind !== "ride" && step % 4 === 0) {
     const du = 4 / 16 / mix.len;
     eqRamp(mix.B, mixState(mix.kind, "in", u), mixState(mix.kind, "in", Math.min(1, u + du)), t, 4 * sd);
@@ -1200,6 +1472,9 @@ function mixState(kind, side, u) {                          // the EQ and fader 
   } else if (kind === "filter") {
     if (side === "in") { s.g = Math.sin(Math.PI / 2 * clamp(u * 1.5)); s.hp = 20 * Math.pow(50, 1 - clamp(u * 1.6)); }
     else { s.lp = 18000 * Math.pow(.02, clamp((u - .25) / .75)); s.g = Math.cos(Math.PI / 2 * clamp((u - .3) / .7)); }
+  } else if (kind === "echo") {                            // in: high-passed, fades up and opens; out: closes, loses its lows, echoes away
+    if (side === "in") { s.g = Math.sin(Math.PI / 2 * clamp((u - .1) / .5)); s.hp = 20 * Math.pow(60, 1 - clamp((u - .1) / .75)); s.hi = lerp(-6, 0, clamp(u * 1.5)); }
+    else { s.lp = 18000 * Math.pow(.03, clamp((u - .2) / .7)); s.lo = -30 * clamp((u - .35) / .2); s.g = Math.cos(Math.PI / 2 * clamp((u - .4) / .6)); }
   } else if (kind === "cut") {
     if (side === "out") { s.lo = -30; s.g = Math.cos(Math.PI / 2 * clamp(u)); s.hp = 20 + 380 * clamp(u); }
   }
@@ -1231,16 +1506,18 @@ function applyMutes(D) { for (const D2 of D ? [D] : decks) for (const P of Objec
    LIGHT · black ground, light only. Back to front: a liquid field with contour lines (WebGL); a dot matrix breathing with
    the low end; the mix written around the dial as a polar slit-scan, one turn per bar; light trails thrown off by the hits;
    fixed neon rings, one per role, each bar's hits joined into the shape of its rhythm (both records during a mix, the
-   outgoing one dashed). The rings never move or change shape, and nothing flashes. Below: a hairline step pattern.
+   outgoing one dashed). The rings never move or change shape, and nothing flashes. Right: the story of the style.
    ===================================================================== */
-const cv = document.getElementById("cv"), g2 = cv.getContext("2d");
+const cv = document.getElementById("cv"), g2main = cv.getContext("2d");
+let g2 = g2main;                                            // every drawing goes through g2; during a zoom it points at an offscreen layer
+const atlasC = document.createElement("canvas"), aG = atlasC.getContext("2d"), liveC = document.createElement("canvas"), lG = liveC.getContext("2d");
 let W = 0, H = 0, DPR = 1, recMode = false;
 const glC = document.createElement("canvas"), gl = glC.getContext("webgl2", { premultipliedAlpha: false, antialias: false });
 const specC = document.createElement("canvas"), sg = specC.getContext("2d"), trailC = document.createElement("canvas"), tg = trailC.getContext("2d");
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 1.5);
   if (recMode) { W = 1080; H = 1920; } else { W = Math.round(innerWidth * DPR); H = Math.round(innerHeight * DPR); }
-  cv.width = W; cv.height = H; specC.width = trailC.width = W; specC.height = trailC.height = H;
+  cv.width = W; cv.height = H; atlasC.width = liveC.width = W; atlasC.height = liveC.height = H; specC.width = trailC.width = W; specC.height = trailC.height = H;
   glC.width = Math.max(2, Math.round(W * .7)); glC.height = Math.max(2, Math.round(H * .7));
 }
 const NP = new Float32Array(512); for (let i = 0; i < 512; i++) NP[i] = Math.random();
@@ -1306,13 +1583,16 @@ let rings = [], showHud = true;
 const lastHit = [];
 function audioNow() { return ctx ? ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0) : performance.now() / 1000; }
 function curBar(now) { let b = null; for (const x of TL) if (x.t0 <= now) b = x; return b; }
-function geom() {
-  const portrait = H > W * 1.2, cx = W / 2;
-  const base = portrait ? W * .38 : Math.min(W, H) * .31, cy = portrait ? H * .4 : H * .45;
-  return { cx, cy, base, portrait };
+function geom() {                                         // the rings live in the left 66 %; the right 34 % is the story (portrait: top / bottom)
+  const portrait = H > W * 1.2, LW = portrait || recMode ? W : W * .66, cx = LW / 2;
+  let base, cy;
+  if (recMode) { base = W * .38; cy = H * .4; }
+  else if (portrait) { base = Math.min(W * .3, H * .15); cy = H * .335; }
+  else { base = Math.min(H * .29, LW * .22); cy = H * .575; }       // optically centred in its panel (below the title block)
+  return { cx, cy, base, portrait, LW };
 }
 function rgba(c, a) { return `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${clamp(a, 0, 1).toFixed(3)})`; }
-const partColor = k => { const p = S.pal; return k % 3 === 2 ? [235, 240, 255] : p[k % 3 === 0 ? 0 : 1]; };
+const partColor = k => S.pal[[0, 1, 2][k % 3]];           // three shades of the family colour
 const isOn = role => soloRole ? role === soloRole : !mutedRoles.has(role);
 let VIEW = { ents: [], pos: 0, main: null };
 
@@ -1320,7 +1600,37 @@ function frame() {
   requestAnimationFrame(frame);
   if (!W) resize();
   const now = audioNow(), t = performance.now() / 1000, dt = Math.min(.05, (t - (frame.last || t)) || .016); frame.last = t;
-  if (VIEW_MODE === "atlas") { drawAtlas(now, t, dt); viewFade(); return; }
+  infoShow(VIEW_MODE === "live" && showHud && !recMode && !!(cur || VIS.sub));
+  const tr = viewTr();
+  if (!tr) { if (VIEW_MODE === "atlas") drawAtlas(now, t, dt); else drawLive(now, t, dt, false); return; }
+  zoomFrame(tr, now, t, dt);
+}
+/* ---------- the zoom: one camera flying between the map and the record. The style's node opens into its rings (in), and the
+   rings fold back into the node (out). Each layer is drawn crisp at its own scale, then cross-faded; the live layer opens
+   through a growing round iris so its field never shows as a rectangle. ---------- */
+function zoomFrame(tr, now, t, dt) {
+  const e = tr.e, { cx, cy, base } = geom(), N = tr.N, Z = 9;
+  const z = Math.pow(Z, e), ax = lerp(N.x, cx, e), ay = lerp(N.y, cy, e), s = z / Z;
+  // the map, scaled about the node
+  g2 = aG; aG.setTransform(1, 0, 0, 1, 0, 0); aG.globalCompositeOperation = "source-over"; aG.globalAlpha = 1; aG.fillStyle = "#030305"; aG.fillRect(0, 0, W, H);
+  aG.setTransform(z, 0, 0, z, ax - N.x * z, ay - N.y * z); drawAtlas(now, t, dt);
+  // the record, growing out of the node
+  g2 = lG; lG.setTransform(1, 0, 0, 1, 0, 0); lG.clearRect(0, 0, W, H);
+  lG.setTransform(s, 0, 0, s, ax - cx * s, ay - cy * s); drawLive(now, t, dt, true);
+  lG.setTransform(1, 0, 0, 1, 0, 0);
+  const R = s * (base * 1.75 + smoothstep(.55, 1, e) * Math.hypot(W, H) * 1.1);   // the iris: the rings first, the whole record last
+  const msk = lG.createRadialGradient(ax, ay, R * .55, ax, ay, Math.max(R, 1));
+  msk.addColorStop(0, "rgba(0,0,0,1)"); msk.addColorStop(1, "rgba(0,0,0,0)");
+  lG.globalCompositeOperation = "destination-in"; lG.globalAlpha = 1; lG.fillStyle = msk; lG.fillRect(0, 0, W, H); lG.globalCompositeOperation = "source-over";
+  g2 = g2main;
+  g2.setTransform(1, 0, 0, 1, 0, 0); g2.globalCompositeOperation = "source-over";
+  g2.globalAlpha = 1; g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H);
+  g2.globalAlpha = 1 - smoothstep(.35, .85, e); g2.drawImage(atlasC, 0, 0);
+  g2.globalAlpha = smoothstep(.08, .55, e); g2.drawImage(liveC, 0, 0);
+  g2.globalAlpha = 1;
+}
+function smoothstep(a, b, x) { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); }
+function drawLive(now, t, dt, layer) {
   const { cx, cy, base } = geom();
   const B = playing ? curBar(now) : null, pos = B ? clamp((now - B.t0) / B.sd, 0, 15.999) : (frame.pos || 0); frame.pos = pos;
   // which records we hear: during a mix, the weights follow the crossfade
@@ -1346,8 +1656,9 @@ function frame() {
   if (freq) { let l = 0; for (let i = 1; i < 12; i++) l += freq[i]; S.low += (l / 11 / 255 - S.low) * .35; } else S.low *= .9;
 
   // 1. the liquid field
-  g2.globalCompositeOperation = "source-over"; g2.globalAlpha = 1; g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H);
-  if (drawGL(t * (slow ? .6 : 1), S)) { g2.globalAlpha = (.55 + .45 * S.energy) * S.fade * S.black; g2.drawImage(glC, 0, 0, W, H); g2.globalAlpha = 1; }
+  g2.globalCompositeOperation = "source-over"; g2.globalAlpha = 1; if (!layer) { g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H); }
+  { const gr = g2.createRadialGradient(cx, cy, 0, cx, cy, base * 2.6); gr.addColorStop(0, rgba(S.pal[1], .16 * S.fade * S.black)); gr.addColorStop(1, rgba(S.pal[1], 0));
+    g2.fillStyle = gr; g2.fillRect(cx - base * 2.6, cy - base * 2.6, base * 5.2, base * 5.2); }       // a still glow in the style's colour (no moving field)
   g2.globalCompositeOperation = "lighter";
   // 2. dot matrix
   const sp = Math.max(13, Math.round(W / 96)), lowE = S.low * S.black; g2.fillStyle = "#cfd6e6";
@@ -1440,7 +1751,7 @@ function frame() {
   }
   g2.globalCompositeOperation = "source-over";
   if (showHud || recMode) hud(now, pos, silent);
-  g2.globalAlpha = 1; viewFade();
+  g2.globalAlpha = 1;
 }
 function viewFade() { const k = clamp((performance.now() - viewT) / 500); if (k < 1) { g2.globalCompositeOperation = "source-over"; g2.fillStyle = `rgba(3,3,5,${1 - k})`; g2.fillRect(0, 0, W, H); } }
 
@@ -1477,23 +1788,95 @@ function makeScrambler(dur0) {
   };
 }
 const scramble = makeScrambler(900), scramble2 = makeScrambler(700);
-let hits2 = [];                                             // clickable: families, styles, pattern rows
+let hits2 = [];
+/* ---------- the list of every style (opened from the breadcrumb): browsing never plays; only a pick does ---------- */
+let navOpen = false;
+const navEl = document.getElementById("nav");
+function navBuild() {
+  if (!navEl || navEl.dataset.built) return; navEl.dataset.built = 1;
+  navEl.innerHTML = FAM_ORDER.map(id => FAMILIES.find(F => F.id === id)).filter(Boolean).map(F => `<section style="--c:${rgba(famColor(F), 1)}"><h3>${F.name}</h3>${F.subs.map(S => `<button data-s="${S.id}" style="--c:${rgba(S.palette[0], 1)}">${S.name}</button>`).join("")}</section>`).join("");
+  navEl.addEventListener("click", e => { const b = e.target.closest("button[data-s]"); if (!b) return; const S = FAMILIES.flatMap(F => F.subs).find(s => s.id === b.dataset.s); navToggle(false); if (S) requestSub(S); });
+}
+function navToggle(on = !navOpen) {
+  navBuild(); navOpen = on && VIEW_MODE === "live" && !!cur; navEl?.classList.toggle("open", navOpen);
+  if (navOpen) { const nowId = cur?.sub?.id, nextId = (pending || mixReq || (mix && (mix.to || mix.B.sub)))?.id;
+    navEl.querySelectorAll("button[data-s]").forEach(b => { b.classList.toggle("now", b.dataset.s === nowId); b.classList.toggle("next", !!nextId && b.dataset.s === nextId && nextId !== nowId); }); }
+}
+document.getElementById("info")?.addEventListener("click", e => { const a = e.target.closest("a[data-s]"); if (!a) return; e.preventDefault();
+  const S = FAMILIES.flatMap(F => F.subs).find(s => s.id === a.dataset.s); if (S) requestSub(S); });                                             // clickable: the menu, the styles, the ring labels
+/* ---------- the story panel (DOM, right 34 %): origin first, then the sound ---------- */
+const infoEl = document.getElementById("info"), infoIn = document.getElementById("infoIn");
+let infoOn = null, infoId = null, infoTimer = 0;
+function infoShow(on) { if (on === infoOn) return; infoOn = on; infoEl?.classList.toggle("show", on); document.getElementById("vol")?.classList.toggle("show", on); }   // the volume lives on the style page only
+function infoFill(X) {
+  const T = TRIVIA[X.id], $ = id => document.getElementById(id), esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  if (!T || !$("iWhere")) return;
+  $("iWhere").textContent = T.o; $("iWhen").textContent = `${T.y}   ·   ${X.name}`;
+  $("iBody").innerHTML = T.p.map(x => `<p>${esc(x)}</p>`).join("");
+  $("iSound").textContent = T.s;
+  // follow the thread: where this style came from and where it went, as one sentence of links
+  const byId = id => FAMILIES.flatMap(F => F.subs).find(s => s.id === id), link = S => `<a data-s="${S.id}" style="--c:${rgba(S.palette[0], 1)}">${esc(S.name)}</a>`;
+  const list = a => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+  const from = LINEAGE.filter(e => e[1] === X.id).map(e => byId(e[0])).filter(Boolean).map(link), to = LINEAGE.filter(e => e[0] === X.id).map(e => byId(e[1])).filter(Boolean).map(link);
+  $("iThread").innerHTML = from.length && to.length ? `${esc(X.name)} grew from ${list(from)}, and led to ${list(to)}.`
+    : from.length ? `${esc(X.name)} grew from ${list(from)}.` : to.length ? `${esc(X.name)} led to ${list(to)}.` : "";
+  $("iSrc").innerHTML = "Sources&nbsp;&nbsp;" + T.src.map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(l)} ↗</a>`).join("");
+  if (infoEl) infoEl.scrollTop = 0;
+}
+function infoSet(X) {                                        // changes with the title: once the mix is done
+  if (!X || X.id === infoId) return; const first = infoId === null; infoId = X.id;
+  if (first || !infoIn) { infoFill(X); return; }
+  infoIn.classList.add("swap"); clearTimeout(infoTimer);
+  infoTimer = setTimeout(() => { infoFill(TRIVIA[infoId] ? FAMILIES.flatMap(F => F.subs).find(s => s.id === infoId) : X); infoIn.classList.remove("swap"); }, 460);
+}
+/* a row of words, centred on x; shrunk to fit, or wrapped onto more lines when shrinking would make it too small */
+function menuRow(items, x, y, size, maxW, gap, track, lineH, up) {
+  const meas = (s, sz, tr) => { g2.font = `400 ${sz}px ${FONT_M}`; return g2.measureText(s).width + s.length * tr; };
+  const totalOf = (its, sz, tr, gp) => its.reduce((a, it) => a + meas(it.t, sz, tr), 0) + gp * (its.length - 1);
+  let k = Math.min(1, maxW / totalOf(items, size, track, gap)), lines = [items];
+  if (k < .8) {                                             // wrap greedily at 80 % size
+    k = Math.max(k, .8); lines = []; let line = [], w = 0;
+    for (const it of items) { const iw = meas(it.t, size * k, track * k); if (line.length && w + gap * k + iw > maxW) { lines.push(line); line = []; w = 0; } w += (line.length ? gap * k : 0) + iw; line.push(it); }
+    if (line.length) lines.push(line);
+  }
+  const sz = size * k, tr = track * k, gp = gap * k, out = [];
+  lines.forEach((ln, li) => {
+    const ly = up ? y - (lines.length - 1 - li) * lineH : y + li * lineH, tot = totalOf(ln, sz, tr, gp);
+    let sx = x - tot / 2; for (const it of ln) { const w = meas(it.t, sz, tr); out.push({ ...it, x0: sx, x1: sx + w, y: ly, sz, track: tr }); sx += w + gp; }
+  });
+  out.lines = lines.length; return out;
+}
 function hud(now, pos, silent) {
   const Sx = VIS.sub; if (!Sx) return;
-  const { cx, cy, base, portrait } = geom(), u = DPR * (portrait ? 1.9 : 1), pad = 28 * u, dimC = "#6f7585", al = S.fade;
+  const { cx, cy, base, portrait, LW } = geom(), u = DPR * (recMode ? 1.9 : portrait ? .9 : 1), pad = (portrait && !recMode ? 20 : 28) * u, dimC = "#6f7585", al = S.fade;
   hits2 = [];
-  // families · style · tempo, key, place
-  let x = pad;
-  txt("◂ ATLAS", x, pad + 10 * u, 10 * u, { color: "#c9cdd6", track: 3 * u, alpha: al }); g2.font = `400 ${10 * u}px ${FONT_M}`;
-  { const w = g2.measureText("◂ ATLAS").width + 7 * 3 * u; hits2.push({ x0: x - 6 * u, x1: x + w, y0: pad - 4 * u, y1: pad + 16 * u, act: () => setView("atlas") }); x += w + 30 * u; }
-  FAMILIES.forEach(F => { const on = F === Sx.fam; txt(F.name.toUpperCase(), x, pad + 10 * u, 10 * u, { color: on ? "#fff" : "#4f5462", track: 3 * u, alpha: al });
-    g2.font = `400 ${10 * u}px ${FONT_M}`; const w = g2.measureText(F.name.toUpperCase()).width + F.name.length * 3 * u;
-    hits2.push({ x0: x - 6 * u, x1: x + w, y0: pad - 4 * u, y1: pad + 16 * u, act: () => requestSub(F.subs[0]) }); x += w + 22 * u; });
-  const T = VIS.mix ? VIS.mix.fromSub : (cur?.sub || Sx);   // the title changes once the mix is done
-  txt(scramble(T.name.toUpperCase()), pad, pad + 56 * u, Math.min(52 * u, W / 14), { font: FONT_T, weight: 300, track: 5 * u, alpha: al });
-  txt(`${Math.round(bpm)} BPM   ·   ${scramble2(`${T.fam.keyName.toUpperCase()}${(cur?.rate || 1) < 1 && !VIS.mix ? "   ·   SLOWED ×0.82" : ""}   ·   ${T.where.toUpperCase()}`)}`, pad, pad + 80 * u, 10 * u, { color: dimC, track: 1.5 * u, alpha: al });
-  if (!portrait && !recording) txt("0  HELP", W - pad, pad + 10 * u, 8.5 * u, { align: "right", color: "#4f5462", track: 2 * u, alpha: al });
-  if (recording) { const blink = (performance.now() / 500 | 0) % 2; txt(`${blink ? "●" : "○"} REC`, W - pad, pad + 10 * u, 11 * u, { align: "right", color: "#ff3355", track: 2 * u }); }
+  // style · tempo, key, place (top left)
+  const T = VIS.mix ? VIS.mix.fromSub : (cur?.sub || Sx);   // the title (and the story) change once the mix is done
+  infoSet(T);
+  const tY = pad + (portrait && !recMode ? 120 : 72) * u, tName = T.name.toUpperCase();
+  // where you are: ATLAS / FAMILY / STYLE ▾ — the atlas crumb flies back to the map, the others open the list of every style
+  { const cy0 = pad + (portrait && !recMode ? 60 : 10) * u, sz = 10 * u, tr = 3 * u; let x = pad; g2.font = `400 ${sz}px ${FONT_M}`;
+    const crumb = (s, col, act) => { txt(s, x, cy0, sz, { color: col, track: tr, alpha: al }); const w = g2.measureText(s).width + s.length * tr; if (act) hits2.push({ x0: x - 6 * u, x1: x + w + 6 * u, y0: cy0 - 14 * u, y1: cy0 + 8 * u, act }); x += w; };
+    const sep = () => crumb("  /  ", "#3b3f4a");
+    crumb("◂ ATLAS", "#c9cdd6", () => setView("atlas")); sep();
+    crumb(T.fam.name.toUpperCase(), rgba(famColor(T.fam), .95), () => navToggle(true)); sep();
+    crumb(T.name.toUpperCase() + (navOpen ? "  ▴" : "  ▾"), "#ffffff", () => navToggle(true)); }
+  // while the DJ works: the title now and then reads TRANSITIONING, and a hairline under it fills with the mix
+  const target = VIS.mix ? VIS.mix.toSub : playing ? (mixReq || pending || (mix && (mix.to || mix.B.sub))) : null, busy = !!target && target !== T;
+  if (busy) hud.busyT0 ??= performance.now(); else hud.busyT0 = null;
+  const showName = busy && Math.floor((performance.now() - hud.busyT0) / 2600) % 2 === 0 ? "TRANSITIONING" : tName;
+  const tSize = Math.min(52 * u, ((LW - 2 * pad) / Math.max(tName.length, 13) - 5 * u) / .62);
+  txt(scramble(showName), pad, tY, tSize, { font: FONT_T, weight: 300, track: 5 * u, alpha: al });
+  if (busy) {
+    const bw = Math.min(LW * .45, 320 * u), by = tY + 12 * u, k = VIS.mix ? smooth(clamp(VIS.mix.u)) : 0;
+    g2.fillStyle = `rgba(255,255,255,${.14 * al})`; g2.fillRect(pad, by, bw, 1 * u);
+    g2.fillStyle = rgba(VIS.mix ? S.pal[2] : [255, 255, 255], .9 * al); g2.fillRect(pad, by - .5 * u, Math.max(2 * u, bw * k), 2 * u);
+    if (!VIS.mix) { const bl = .3 + .5 * (.5 + .5 * Math.sin(performance.now() / 160)); g2.fillStyle = `rgba(255,255,255,${bl * al})`; g2.fillRect(pad, by - .5 * u, 6 * u, 2 * u); }
+    txt(`→ ${target.name.toUpperCase()}   ${VIS.mix ? Math.round(k * 100) + "%" : "NEXT BAR"}`, pad + bw + 12 * u, by + 3 * u, 8 * u, { align: "left", color: "#8a90a0", track: 2 * u, alpha: al });
+  }
+
+  txt(`${Math.round(bpm)} BPM   ·   ${scramble2(`${T.fam.keyName.toUpperCase()}${(cur?.rate || 1) < 1 && !VIS.mix ? "   ·   SLOWED ×0.82" : ""}   ·   ${T.where.toUpperCase()}`)}`, pad, tY + 32 * u, 10 * u, { color: dimC, track: 1.5 * u, alpha: al });
+  if (recording) { const blink = (performance.now() / 500 | 0) % 2; txt(`${blink ? "●" : "○"} REC`, LW - pad, pad + 10 * u, 11 * u, { align: "right", color: "#ff3355", track: 2 * u }); }
 
   // ring callouts
   const lx0 = portrait ? Math.max(pad + 64 * u, cx - base * 1.15) : cx - base * 1.5, N2 = rings.length;
@@ -1504,43 +1887,8 @@ function hud(now, pos, silent) {
     g2.beginPath(); g2.moveTo(lx0, ly); g2.lineTo(lx0 + 14 * u, ly); g2.lineTo(ax, ay); g2.stroke();
     hits2.push({ x0: lx0 - 150 * u, x1: lx0, y0: ly - 7 * u, y1: ly + 7 * u, act: () => { if (R.empty) return; mutedRoles.has(R.role) ? mutedRoles.delete(R.role) : mutedRoles.add(R.role); applyMutes(); } });
   });
-  // the pattern: this bar as hairlines, one thin row per role, same colours as the rings
-  const { ents, main } = VIEW, rows = rings.length, rowH = 6 * u, cell = Math.min(18 * u, (portrait ? W * .6 : W * .26) / 16);
-  const gw = cell * 16, gx = cx - gw / 2, gy = H - pad - (portrait ? 110 : 64) * u - rows * rowH, ph = Math.floor(pos);
-  for (let s2 = 0; s2 <= 16; s2 += 4) { g2.fillStyle = `rgba(255,255,255,${.08 * al})`; g2.fillRect(gx + s2 * cell, gy - 2 * u, 1, rows * rowH + 2 * u); }
-  if (playing) { g2.fillStyle = `rgba(255,255,255,${.5 * al})`; g2.fillRect(gx + pos * cell, gy - 3 * u, 1 * DPR, rows * rowH + 4 * u); }
-  rings.forEach((R, k) => {
-    const y = gy + k * rowH + rowH / 2, col = partColor(k), a2 = al * (R.empty ? .2 : isOn(R.role) ? 1 : .3);
-    for (const E of ents) {
-      if (E.w < .04) continue;
-      for (const e of E.ev) {
-        if (e.p !== k) continue;
-        const len = Math.min(16 - e.s, Math.max(.6, e.n != null || e.len ? Math.min(e.len || .6, 16) : .6)), lit = Math.floor(e.s) === ph && playing;
-        g2.fillStyle = rgba(col, (lit ? 1 : .75) * a2 * E.w * (E.out ? .5 : 1)); g2.fillRect(gx + e.s * cell + 1, y - 1 * DPR, Math.max(2, len * cell - 2), 2 * DPR);
-      }
-    }
-  });
-  if (main) txt(`${main.sec.replace("2", " II").toUpperCase()}  ${String(main.bib + 1).padStart(2, "0")}/${String(main.n).padStart(2, "0")}`, gx + gw, gy - 8 * u, 7.5 * u, { align: "right", color: "#5d6272", track: 2 * u, alpha: al });
 
-  // the styles of this family; during a mix a line slides from the old one to the new
-  const subs = Sx.fam.subs, gap = 26 * u, sz = 10 * u; g2.font = `400 ${sz}px ${FONT_M}`;
-  const widths = subs.map(X => g2.measureText(X.name.toUpperCase()).width + X.name.length * 2 * u), total = widths.reduce((a, b) => a + b, 0) + gap * (subs.length - 1);
-  let sx = (W - total) / 2; const sy = H - pad - (portrait ? 30 * u : 4 * u), pos2 = {};
-  subs.forEach((X, i) => {
-    const mixTo = VIS.mix && VIS.mix.toSub === X, mixFrom = VIS.mix && VIS.mix.fromSub === X, isNow = X === Sx, queued = (pending === X) || (mixReq === X);
-    txt(X.name.toUpperCase(), sx, sy, sz, { color: isNow ? "#ffffff" : mixTo || mixFrom ? "#c9cdd6" : queued ? "#9aa0ae" : "#4f5462", track: 2 * u, alpha: al });
-    pos2[X.id] = [sx, sx + widths[i]];
-    hits2.push({ x0: sx - 8 * u, x1: sx + widths[i] + 8 * u, y0: sy - 16 * u, y1: sy + 8 * u, act: () => requestSub(X) });
-    if (isNow && !VIS.mix) { g2.fillStyle = `rgba(255,255,255,${.85 * al})`; g2.fillRect(sx, sy + 8 * u, widths[i] - 2 * u, 1.5 * u); }
-    if (queued && !VIS.mix) { const bl = (performance.now() / 400 | 0) % 2; g2.fillStyle = `rgba(255,255,255,${bl ? .5 : .15})`; g2.fillRect(sx, sy + 8 * u, widths[i] - 2 * u, 1 * u); }
-    sx += widths[i] + gap;
-  });
-  if (VIS.mix && pos2[VIS.mix.fromSub.id] && pos2[VIS.mix.toSub.id]) {
-    const [a0, a1] = pos2[VIS.mix.fromSub.id], [b0, b1] = pos2[VIS.mix.toSub.id], k = smooth(VIS.mix.u);
-    g2.fillStyle = `rgba(255,255,255,${.85 * al})`; g2.fillRect(lerp(a0, b0, k), sy + 8 * u, lerp(a1, b1, k) - lerp(a0, b0, k), 1.5 * u);
-    txt({ blend: "EQ BLEND · BASS SWAP", filter: "FILTER MIX", ride: "PITCH FADER", cut: "CUT ON THE ONE" }[VIS.mix.kind], W / 2, sy + 26 * u, 8 * u, { align: "center", color: dimC, track: 2 * u, alpha: al });
-  }
-  if (portrait) txt("PRESSINGS", W / 2, H - pad * .7, 10 * u, { align: "center", color: "#5d6272", track: 6 * u });
+  if (portrait && recMode) txt("PRESSINGS", W / 2, H - pad * .7, 10 * u, { align: "center", color: "#5d6272", track: 6 * u });
 }
 
 /* =====================================================================
@@ -1549,27 +1897,47 @@ function hud(now, pos, silent) {
    ===================================================================== */
 let VIEW_MODE = "atlas", viewT = 0, atlasHover = null, atlasNodes = [], atlasPending = null;
 const LINEAGE = [
-  ["cumbia", "chicha"], ["cumbia", "rebajada"], ["cumbia", "digital"], ["chicha", "tropical"], ["chicha", "selva"], ["digital", "andean"], ["digital", "tropical"],
+  ["cumbia", "chicha"], ["cumbia", "rebajada"], ["cumbia", "digital"], ["chicha", "tropical"], ["disco", "electrofunk"], ["digital", "tropical"],
   ["dancehall", "reggaeton"], ["reggaeton", "dominican"], ["reggaeton", "moombahton"], ["electrohouse", "moombahton"], ["dancehall", "jungle"],
   ["disco", "chicago"], ["disco", "italo"], ["disco", "hinrg"], ["disco", "nudisco"], ["disco", "frenchtouch"], ["italo", "chicago"], ["hinrg", "chicago"],
   ["electrofunk", "electro"], ["electro", "detroit"], ["electro", "miami"], ["electro", "electroclash"], ["electro", "breakbeat"], ["electroclash", "electrohouse"], ["frenchtouch", "electrohouse"],
   ["chicago", "deep"], ["chicago", "acid"], ["chicago", "tech"], ["chicago", "ambient"], ["chicago", "ukg"], ["acid", "acidt"], ["detroit", "tech"],
   ["detroit", "minimalt"], ["minimalt", "minimal"], ["minimalt", "dubtechno"], ["detroit", "industrial"], ["detroit", "tribal"],
-  ["boombap", "jazzhop"], ["boombap", "lofi"], ["jazzhop", "lofi"], ["boombap", "screwed"], ["screwed", "trap"],
+  ["boombap", "jazzhop"], ["boombap", "breakbeat"], ["ukg", "grime"], ["jungle", "grime"], ["boombap", "lofi"], ["jazzhop", "lofi"], ["boombap", "screwed"],
   ["breakbeat", "jungle"], ["jungle", "liquid"], ["ukg", "dubstep"],
 ];
+const BRIDGE = { breakbeat: "hiphop", grime: "breaks" };     // styles that sit between two families
 const FAM_ORDER = ["cumbia", "dembow", "hiphop", "breaks", "electro", "techno", "house", "disco"];
 const FAM_COL = { cumbia: [255, 150, 40], dembow: [255, 70, 160], hiphop: [255, 92, 80], breaks: [130, 255, 120], electro: [60, 230, 230], techno: [90, 140, 255], house: [236, 239, 246], disco: [200, 120, 255] };
 function famColor(F) { return FAM_COL[F.id] || F.subs[0].palette[0]; }
+/* the colour code: every style is drawn in shades of its family's colour (house: whites and greys) */
+function rgb2hsl([r, g, b]) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l]; const s = d / (1 - Math.abs(2 * l - 1)); let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, s, l]; }
+function hsl2rgb(h, s, l) { h = ((h % 360) + 360) % 360; const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)]; }
+for (const F of FAMILIES) {
+  const [h, s] = rgb2hsl(famColor(F)), n = F.subs.length, grey = s < .2;
+  F.subs.forEach((X, i) => {
+    const k = n > 1 ? i / (n - 1) : .5, hi = h + (k - .5) * 22;                       // each style leans a little warmer or cooler
+    X.palette = grey
+      ? [hsl2rgb(220, .03 + .05 * k, .9 - .12 * k), hsl2rgb(220, .05, .5 + .1 * k), hsl2rgb(220, .06, .97)]
+      : [hsl2rgb(hi, Math.min(1, s * (.85 + .3 * k)), .56 + .08 * (1 - k)), hsl2rgb(hi + 8, s * .8, .36 + .06 * k), hsl2rgb(hi - 4, s * .55, .84)];
+  });
+}
 function atlasLayout() {                                   // families on a wide ellipse, styles on a small ring around each family's name
   const portrait = H > W * 1.2, cx = W / 2, cy = H * (portrait ? .5 : .53), rx = W * (portrait ? .3 : .34), ry = H * (portrait ? .36 : .31);
   const fams = FAM_ORDER.map(id => FAMILIES.find(F => F.id === id)).filter(Boolean);
   const nodes = [], centers = [];
   fams.forEach((F, i) => {
-    const a = -Math.PI / 2 + i / fams.length * TAU + .2, fx = cx + rx * Math.cos(a), fy = cy + ry * Math.sin(a), n = F.subs.length;
-    const rr = Math.min(W, H) * (portrait ? .1 : .085) * (1 + n * .03);
-    centers.push({ F, x: fx, y: fy, r: rr });
-    F.subs.forEach((S, k) => { const b = -Math.PI / 2 + k / n * TAU + i * .7; nodes.push({ S, F, x: fx + rr * Math.cos(b), y: fy + rr * Math.sin(b), out: [Math.cos(b), Math.sin(b)] }); });
+    const a = -Math.PI / 2 + i / fams.length * TAU + .2, n = F.subs.length;
+    centers.push({ F, x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), r: Math.min(W, H) * (portrait ? .1 : .085) * (1 + n * .03) });
+  });
+  centers.forEach(({ F, x: fx, y: fy, r: rr }, i) => {
+    const n = F.subs.length; let off = -Math.PI / 2 + i * .7;
+    const bk = F.subs.findIndex(S => BRIDGE[S.id]), T = bk >= 0 && centers.find(c => c.F.id === BRIDGE[F.subs[bk].id]);
+    if (T) off = Math.atan2(T.y - fy, T.x - fx) - bk / n * TAU;     // a bridge style faces the family it links to
+    F.subs.forEach((S, k) => { const b = off + k / n * TAU; nodes.push({ S, F, x: fx + rr * Math.cos(b), y: fy + rr * Math.sin(b), out: [Math.cos(b), Math.sin(b)] }); });
   });
   return { nodes, centers, cx, cy };
 }
@@ -1579,7 +1947,6 @@ function drawAtlas(now, t, dt) {
   const playingId = cur?.sub?.id, pulse = playing ? .5 + .5 * Math.sin(t * TAU * (bpm / 60)) : 0;
   // background: the same liquid field, quieter
   g2.globalCompositeOperation = "source-over"; g2.globalAlpha = 1; g2.fillStyle = "#030305"; g2.fillRect(0, 0, W, H);
-  if (drawGL(t * .4, { ...S, energy: .25, warp: .2, black: 1, flash: 0, pal: [[90, 100, 140], [60, 70, 110], [200, 200, 220]] })) { g2.globalAlpha = .5; g2.drawImage(glC, 0, 0, W, H); g2.globalAlpha = 1; }
   g2.globalCompositeOperation = "lighter";
   const sp = Math.max(13, Math.round(W / 96)); g2.fillStyle = "#cfd6e6";             // the dot matrix, faint
   for (let y = sp / 2; y < H; y += sp) for (let x = sp / 2; x < W; x += sp) { g2.globalAlpha = .035; g2.fillRect(x - .5 * DPR, y - .5 * DPR, DPR, DPR); }
@@ -1601,7 +1968,7 @@ function drawAtlas(now, t, dt) {
   }
   // the styles
   for (const N of L.nodes) {
-    const col = famColor(N.F), isHover = atlasHover === N, isPlaying = N.S.id === playingId, isPending = atlasPending === N.S;
+    const col = N.S.palette[0], isHover = atlasHover === N, isPlaying = N.S.id === playingId, isPending = atlasPending === N.S;
     const r = (isHover ? 6.5 : 4.5) * DPR + (isPlaying ? 2 * pulse * DPR : 0);
     const grd = g2.createRadialGradient(N.x, N.y, 0, N.x, N.y, r * 5); grd.addColorStop(0, rgba(col, isHover || isPlaying ? .45 : .22)); grd.addColorStop(1, rgba(col, 0));
     g2.fillStyle = grd; g2.beginPath(); g2.arc(N.x, N.y, r * 5, 0, TAU); g2.fill();
@@ -1615,7 +1982,6 @@ function drawAtlas(now, t, dt) {
   // title, the hovered style's card, what's playing
   txt("PRESSINGS", pad, pad + 10 * u, 10 * u, { color: "#ffffff", track: 6 * u });
   txt("AN ATLAS OF MUSIC", pad, pad + 26 * u, 8.5 * u, { color: "#6f7585", track: 3 * u });
-  txt(`${FAMILIES.length} FAMILIES · ${FAMILIES.reduce((a, F) => a + F.subs.length, 0)} STYLES · PICK ONE TO HEAR IT`, pad, pad + 40 * u, 8.5 * u, { color: "#4f5462", track: 2 * u });
   const N = atlasHover;
   if (N) { const y = H - pad - 34 * u;
     txt(N.S.name.toUpperCase(), pad, y, 20 * u, { font: FONT_T, weight: 300, track: 3 * u, color: "#fff" });
@@ -1625,12 +1991,30 @@ function drawAtlas(now, t, dt) {
   hits2 = cur ? [{ x0: W - pad - 300 * u, x1: W - pad, y0: H - pad - 16 * u, y1: H - pad + 4 * u, act: () => setView("live") }] : [];
 }
 function atlasNodeAt(x, y) { let best = null, bd = 16 * DPR; for (const N of atlasNodes) { const d = Math.hypot(N.x - x, N.y - y); if (d < bd) { bd = d; best = N; } } return best; }
-function setView(v) { if (VIEW_MODE === v) return; VIEW_MODE = v; viewT = performance.now(); }
+let VTR = null, atlasTarget = null;
+function setView(v) {                                       // starts the zoom: in, toward the chosen style; out, back to the playing one
+  if (VIEW_MODE === v) return;
+  const id = (v === "live" ? atlasTarget?.id : null) || VIS.sub?.id || cur?.sub?.id, L = atlasLayout(), N = L.nodes.find(n => n.S.id === id);
+  VIEW_MODE = v; viewT = performance.now(); atlasHover = null;
+  if (navOpen) navToggle(false);
+  VTR = N && !recMode ? { to: v, t0: performance.now(), dur: (v === "live" ? 1500 : 1300) * (window.__zoomSlow || 1), N: { x: N.x, y: N.y } } : null;
+}
+function viewTr() {
+  if (!VTR) return null;
+  if (window.__zoomE != null) return { e: window.__zoomE, N: VTR.N };   // debug: hold the camera
+  const p = (performance.now() - VTR.t0) / VTR.dur; if (p >= 1) { VTR = null; return null; }
+  const k = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // ease in-out (cubic)
+  return { e: VTR.to === "live" ? k : 1 - k, N: VTR.N };
+}
 async function pickFromAtlas(S) {
+  atlasTarget = S;
   if (!ctx) {                                              // the first pick also starts the sound (the click is the gesture)
     initAudio(); atlasPending = S;
     await startWith(S); atlasPending = null; play(true); save(); ui(); setView("live"); return;
   }
+  if (!playing) {                                          // paused: change at once, then fly in
+    if (S !== cur?.sub || mix) { atlasPending = S; await switchNow(S); atlasPending = null; } else play(true);
+    setView("live"); return; }
   if (cur && S === cur.sub && !mix) { setView("live"); return; }
   requestSub(S); setView("live");
 }
@@ -1663,18 +2047,19 @@ const helpOpen = () => !$("help").classList.contains("hide");
 function toggleHelp(on = !helpOpen()) { $("help").classList.toggle("hide", !on); }
 const target = () => pending || mixReq || (mix ? (mix.to || mix.B.sub) : cur?.sub);
 function stepSub(d) { const S = target(), L = S.fam.subs; requestSub(L[(L.indexOf(S) + d + L.length) % L.length]); }
-function stepFam(d) { const F = target().fam, i = FAMILIES.indexOf(F); requestSub(FAMILIES[(i + d + FAMILIES.length) % FAMILIES.length].subs[0]); }
+function stepAll(d) { const L = FAM_ORDER.flatMap(id => FAMILIES.find(F => F.id === id)?.subs || []), S = target(); requestSub(L[(L.indexOf(S) + d + L.length) % L.length]); }
 addEventListener("keydown", e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key;
-  if (k === "Escape") { if (helpOpen()) toggleHelp(false); else setView("atlas"); return; }
+  if (k === "Escape") { if (helpOpen()) toggleHelp(false); else if (navOpen) navToggle(false); else setView("atlas"); return; }
   if (k === "m" || k === "M") { setView(VIEW_MODE === "atlas" && cur ? "live" : "atlas"); return; }
   if (!ctx) return;
   if (k === "0") { toggleHelp(); return; }
   if (!cur) return;
   if (k === " ") { e.preventDefault(); play(!playing); return; }
   if (k === "ArrowDown" || k === "ArrowUp") { e.preventDefault(); stepSub(k === "ArrowDown" ? 1 : -1); return; }
-  if (k === "ArrowRight" || k === "ArrowLeft") { e.preventDefault(); stepFam(k === "ArrowRight" ? 1 : -1); return; }
+  if (k === "ArrowRight" || k === "ArrowLeft") { e.preventDefault(); stepAll(k === "ArrowRight" ? 1 : -1); return; }
+  if ((k === "l" || k === "L") && VIEW_MODE === "live") { navToggle(); return; }
   if (/^[1-9]$/.test(k)) { const L = target().fam.subs, S = L[+k - 1]; if (S) requestSub(S); return; }
   if (k === "h" || k === "H") { showHud = !showHud; return; }
   if (k === "v" || k === "V") { recording ? stopRec() : startRec(); return; }
@@ -1691,6 +2076,8 @@ function ringAt(x, y) {
 let touch0 = null;
 cv.addEventListener("pointerdown", e => {
   const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  if (VTR) return;                                          // no clicks mid-zoom
+  if (navOpen) { navToggle(false); return; }                // a click outside the list closes it
   if (VIEW_MODE === "atlas") {
     const h = hits2.find(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1); if (h) { h.act(); return; }
     const N = atlasNodeAt(x, y); if (N && !atlasPending) pickFromAtlas(N.S); return;

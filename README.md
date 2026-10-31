@@ -1,18 +1,19 @@
 # Pressings · an atlas of music
 
-A procedural music piece that runs in your browser. It opens on a constellation map of **8 families and 43 styles**:
-cumbia, dembow, hip hop, breaks & bass, electro, techno, house and disco. Pick a style and you hear it played live on
+A procedural music piece that runs in your browser. It opens on a constellation map of **8 families and 42 styles**:
+cumbia, dancehall & dembow, hip hop, breaks & bass, electro, techno, house and disco. Pick a style and you hear it played live on
 real recorded instruments. The rhythm, harmony and form are generated as it plays. Pick another style and a DJ mixes
 it in on the next bar, using the basic real techniques: an EQ blend with a bass swap, a filter mix, a pitch-fader ride,
-or a cut on the one. The song carries on through the mix rather than starting again.
+or, between families, an echo out with a filter in while the tempo is ridden. Every mix takes eight bars. The song carries on through the mix rather than starting again.
 
 **Play it:** https://flatfrank.github.io/pressings/
 
 ## How to use it
 - **Atlas:** hover a style to see where it comes from and its tempo, then click it to hear it.
 - **Live view:**
-  - click a style, or use ↑/↓ or 1–9, to mix to it;
-  - use ←/→ to change family;
+  - the trail at the top reads ATLAS / FAMILY / STYLE: click the family or style (or press L) to open the list of every style, then pick one to mix to it;
+  - "Follow the thread" in the story panel links to the styles this one grew from and led to;
+  - ↑/↓ or 1–9 move within the family, and ←/→ move to the previous or next style on the map;
   - Space plays and pauses;
   - click a ring to mute it, or shift-click to solo it;
   - V records a 9:16 reel and H hides the readouts;
